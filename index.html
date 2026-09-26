@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReportLAB · coLAB/UFF</title>
+<meta name="description" content="Editor de relatórios de análise de conjuntura do coLAB/UFF, com exportação em PDF e Markdown.">
+<link rel="icon" href="assets/logo-black.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="locked">
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" autocomplete="on">
+    <div class="brand-row"><img src="assets/logo-black.svg" alt="coLAB" style="height:24px;width:auto"><h1 style="font-size:28px;font-weight:600;letter-spacing:-.015em;margin:0;line-height:1">ReportLAB</h1></div>
+    <h2 id="gateTitle">Entrar</h2>
+    <p class="hint" id="gateText"></p>
+    <input type="text" name="username" value="reportlab" autocomplete="username" hidden>
+    <div class="field"><label for="pw1" id="pw1Label">Senha</label><input class="input" type="password" id="pw1" required></div>
+    <div class="field" id="pw2Field"><label for="pw2">Confirmar senha</label><input class="input" type="password" id="pw2" autocomplete="new-password"></div>
+    <p class="err" id="gateErr" role="alert"></p>
+    <div class="gate-actions">
+      <button class="btn btn-primary btn-block" type="submit" id="gateBtn">Entrar</button>
+      <button class="btn btn-ghost" type="button" id="forgot">Esqueci a senha</button>
+    </div>
+  </form>
+</div>
+
+<dialog class="dlg" id="settings" aria-labelledby="settingsTitle">
+  <div class="dlg-body">
+    <div class="dlg-head"><h2 id="settingsTitle">Configurações</h2><button class="ib" type="button" id="closeSettings" aria-label="Fechar"><i class="ph-duotone ph-x"></i></button></div>
+    <form id="pwForm" style="display:flex;flex-direction:column;gap:12px">
+      <h3>Alterar senha</h3>
+      <input type="text" name="username" value="reportlab" autocomplete="username" hidden>
+      <div class="field"><label for="pwCur">Senha atual</label><input class="input" type="password" id="pwCur" autocomplete="current-password" required></div>
+      <div class="field"><label for="pwNew">Nova senha</label><input class="input" type="password" id="pwNew" autocomplete="new-password" required minlength="6"></div>
+      <div class="field"><label for="pwNew2">Confirmar nova senha</label><input class="input" type="password" id="pwNew2" autocomplete="new-password" required></div>
+      <p class="err" id="pwErr" role="alert"></p>
+      <div><button class="btn btn-primary" type="submit">Salvar nova senha</button></div>
+    </form>
+    <h3>Sessão</h3>
+    <p class="hint">A senha protege o documento salvo neste navegador, que fica criptografado. Ao sair, será preciso digitá-la novamente.</p>
+    <div><button class="btn btn-secondary" type="button" id="logout"><i class="ph-duotone ph-lock-simple"></i>Sair e bloquear</button></div>
+  </div>
+</dialog>
+
+<aside id="panel">
+  <div class="brand">
+    <div class="brand-row"><img src="assets/logo-black.svg" alt="coLAB"><h1>ReportLAB</h1><button class="ib" id="openSettings" title="Configurações" aria-label="Configurações"><i class="ph-duotone ph-gear-six"></i></button></div>
+    <p>Editor de relatórios de análise de conjuntura. Clique em qualquer texto da página para editar; arraste imagens para as áreas de figura.</p>
+  </div>
+
+  <section class="sec">
+    <h2>Edição</h2>
+    <div class="grid2">
+      <div class="field"><label for="m-numero">Número</label><input class="input" id="m-numero" data-meta="numero"></div>
+      <div class="field"><label for="m-data">Data</label><input class="input" id="m-data" data-meta="data"></div>
+    </div>
+    <div class="field"><label for="m-doi">DOI</label><input class="input" id="m-doi" data-meta="doi"></div>
+    <div class="field"><label for="m-isbn">ISBN</label><input class="input" id="m-isbn" data-meta="isbn"></div>
+    <div class="field"><label for="m-site">Site</label><input class="input" id="m-site" data-meta="site"></div>
+    <div class="field"><label for="m-serie">Série</label><input class="input" id="m-serie" data-meta="serie"></div>
+    <div class="field"><label for="m-inst">Instituição</label><input class="input" id="m-inst" data-meta="inst"></div>
+    <div class="field"><label>Cor da edição</label><div class="swatches" id="swatches"></div></div>
+    <label class="check"><input type="checkbox" id="m-showIsbn"><span>Exibir ISBN na capa</span></label>
+    <label class="check"><input type="checkbox" id="m-capaImagem"><span>Imagem na capa</span></label>
+  </section>
+
+  <section class="sec">
+    <h2>Páginas</h2>
+    <ol class="pagelist" id="pagelist"></ol>
+    <div class="addpage">
+      <select class="input" id="newType" aria-label="Tipo de página"></select>
+      <button class="btn btn-secondary" id="addPage"><i class="ph-duotone ph-plus"></i>Adicionar</button>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Exportar</h2>
+    <div class="exp-opt">
+      <button class="btn btn-primary btn-block" id="pdfPrint"><i class="ph-duotone ph-printer"></i>PDF pela impressão</button>
+      <p class="hint">Vetorial, com texto selecionável. Na janela de impressão, escolha “Salvar como PDF”, papel A4, margens “Nenhuma” e ative “Gráficos de plano de fundo”.</p>
+    </div>
+    <div class="exp-opt">
+      <button class="btn btn-secondary btn-block" id="pdfApp"><i class="ph-duotone ph-file-pdf"></i>PDF gerado no app</button>
+      <p class="hint">Resultado idêntico em qualquer navegador; cada página é salva como imagem.</p>
+    </div>
+    <div class="exp-opt">
+      <button class="btn btn-secondary btn-block" id="mdExport"><i class="ph-duotone ph-markdown-logo"></i>Markdown</button>
+      <p class="hint">Texto em .md. Se houver imagens, baixa um .zip com a pasta imagens/.</p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Visualização</h2>
+    <div class="zoom"><input type="range" id="zoom" min="30" max="150" step="5" aria-label="Zoom"><span id="zoomVal"></span><button class="btn btn-ghost" id="zoomFit">Ajustar</button></div>
+  </section>
+
+  <div class="panel-foot">
+    <p class="status" id="status" role="status">Carregando…</p>
+    <button class="btn btn-ghost" id="reset"><i class="ph-duotone ph-arrow-counter-clockwise"></i>Restaurar modelo</button>
+    <p class="credits">ReportLAB · <a href="https://colab.meme" target="_blank" rel="noopener">coLAB/UFF</a>, 2026. O documento fica salvo apenas neste navegador.</p>
+  </div>
+</aside>
+
+<main class="stage" id="stage"><div id="doc"></div></main>
+<input type="file" id="file" accept="image/*" hidden>
+<script src="app.js"></script>
+</body>
+</html>
