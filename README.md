@@ -10,7 +10,8 @@ Editor de relatórios de análise de conjuntura do [coLAB/UFF](https://colab.mem
 - Muda a cor da edição (capa e detalhes internos), o número, a data, o DOI, o ISBN (opcional) e demais metadados no painel lateral.
 - Adiciona, duplica, exclui e reordena páginas (arrastando na lista ou com as setas).
 - Adiciona e remove itens: temas, dados do corpus, marcos da linha do tempo, leituras, grupos da legenda, clusters, imagens compostas, linhas da tabela, créditos.
-- Numera automaticamente seções, figuras e páginas, e monta o sumário.
+- Tabelas de dados em dois modelos de página: horizontal (tabela de contingência + texto corrido) e vertical (tabela de regressão + texto ao lado). Cada tabela tem título, nota/fonte, e permite adicionar e remover linhas e colunas; tabela e texto são reduzidos automaticamente para caber na página. Linhas e colunas chamadas “Total” ficam em negrito.
+- Numera automaticamente seções, figuras, tabelas e páginas, e monta o sumário.
 - Avisa quando o conteúdo de uma página excede o espaço A4.
 - Salva automaticamente no navegador (IndexedDB). O documento não sai do computador do usuário.
 - Pede senha de acesso. No primeiro acesso em cada navegador, o usuário cria a senha; o documento é salvo criptografado com ela (AES-GCM, chave derivada por PBKDF2). A senha pode ser alterada em Configurações (ícone de engrenagem), onde também há a opção de sair e bloquear. Sem a senha, o documento salvo não pode ser recuperado: “Esqueci a senha” apaga o documento deste navegador e permite criar outra.

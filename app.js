@@ -13,6 +13,8 @@ const TYPES = {
   imagem169: 'Texto + imagem 16:9',
   imagem45: 'Texto + imagem 4:5',
   duas45: 'Texto + duas imagens 4:5',
+  tabelaH: 'Texto + tabela horizontal',
+  tabelaV: 'Texto + tabela vertical',
   texto: 'Texto corrido',
   expediente: 'Expediente'
 };
@@ -69,6 +71,31 @@ const NEW = {
     intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
     figs: [{ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' }, { img: img(), cap: 'Sed cursus ante dapibus diam. Fonte: plataforma, 00/00/2026.' }],
     body: [L1, L2].join('\n\n') }),
+  tabelaH: () => ({ type: 'tabelaH', sec: 'Tabela de contingência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
+    lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
+    tbl: { title: 'Distribuição das imagens por cluster visual e plataforma', corner: 'Cluster',
+      cols: ['X', 'Instagram', 'TikTok', 'Telegram', 'Total'],
+      rows: [['C1 · Lorem ipsum', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000'],
+        ['C2 · Dolor sit', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000'],
+        ['C3 · Amet', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000'],
+        ['C4 · Adipiscing', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000 (00,0%)', '000'],
+        ['Total', '000', '000', '000', '000', '0.000']].map(([h, ...c]) => ({ h, c })),
+      foot: [],
+      note: 'Frequências absolutas; percentuais por linha entre parênteses. χ² = 00,00; gl = 0; p < 0,001; V de Cramér = 0,00. Fonte: elaboração própria a partir de dados coletados em plataforma, 00/00 a 00/00/2026.' },
+    body: [L1, L2, L1, L2].join('\n\n') }),
+  tabelaV: () => ({ type: 'tabelaV', sec: 'Regressão linear múltipla', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing',
+    tbl: { title: 'Modelos de regressão linear múltipla para o engajamento (log) das imagens', corner: 'Variável',
+      cols: ['Modelo 1', 'Modelo 2', 'Modelo 3'],
+      rows: [['Intercepto', '0,000***\n(0,000)', '0,000***\n(0,000)', '0,000***\n(0,000)'],
+        ['Presença de rosto', '0,000**\n(0,000)', '0,000**\n(0,000)', '0,000*\n(0,000)'],
+        ['Texto sobreposto', '', '0,000***\n(0,000)', '0,000***\n(0,000)'],
+        ['Saturação média', '', '−0,000\n(0,000)', '−0,000\n(0,000)'],
+        ['Cluster C2 (ref.: C1)', '', '', '0,000*\n(0,000)'],
+        ['Cluster C3 (ref.: C1)', '', '', '−0,000\n(0,000)'],
+        ['Seguidores (log)', '0,000***\n(0,000)', '0,000***\n(0,000)', '0,000***\n(0,000)']].map(([h, ...c]) => ({ h, c })),
+      foot: [['N', '0.000', '0.000', '0.000'], ['R²', '0,00', '0,00', '0,00'], ['R² ajustado', '0,00', '0,00', '0,00'], ['F', '00,00***', '00,00***', '00,00***']].map(([h, ...c]) => ({ h, c })),
+      note: 'Coeficientes não padronizados; erros-padrão entre parênteses. *** p < 0,001; ** p < 0,01; * p < 0,05. Fonte: elaboração própria a partir de dados coletados em plataforma, 00/00 a 00/00/2026.' },
+    body: [L1, L2, 'Curabitur sodales ligula in libero. Sed dignissim lacinia nunc, curabitur tortor pellentesque nibh aenean quam. In scelerisque sem at dolor.', L2].join('\n\n') }),
   texto: () => ({ type: 'texto', sec: 'Discussão', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
     lede: L1, body: [L1, L2, L1, L2].join('\n\n') }),
   expediente: () => ({ type: 'expediente', title: 'Expediente',
@@ -124,6 +151,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 let state = defaultDoc();
 let SEC = [];
 let figN = 0;
+let tabN = 0;
 const get = p => p.split('.').reduce((o, k) => (o == null ? o : o[k]), state);
 const set = (p, v) => { const ks = p.split('.'); const last = ks.pop(); ks.reduce((o, k) => o[k], state)[last] = v; };
 const CE = (() => { try { const d = document.createElement('div'); d.contentEditable = 'plaintext-only'; return d.contentEditable === 'plaintext-only' ? 'plaintext-only' : 'true'; } catch { return 'true'; } })();
@@ -169,6 +197,29 @@ const RUN = () => `<div class="run"><span class="run-l"><i class="sq"></i><span>
 const FOOT = i => `<div class="foot"><span>doi.org/${M('doi')}</span><b>${pad(i + 1)}</b></div>`;
 const KICK = (i, k) => `<div class="kick"><span class="kn">${pad(SEC[i])}</span>${T(k + '.sec', { tag: 'span', cls: 'kl', single: true, ph: 'Seção' })}</div>`;
 const CAP = (k, tag = 'figcaption', cls = '') => `<${tag} class="${cls}"><b>Fig. ${++figN}</b> ${T(k, { tag: 'span', ph: 'Legenda da figura' })}</${tag}>`;
+function TABLE(k, t, cls) {
+  const n = t.cols.length;
+  const isTot = s => /^\s*total\s*$/i.test(s || '');
+  const totCol = t.cols.map(isTot);
+  const cell = (path, j) => `<td class="${totCol[j] ? 'tot' : ''}">${T(path, { tag: 'span', ph: '—' })}</td>`;
+  const row = (list, r, j, extra = '') => `<tr class="${isTot(r.h) ? 'tot-row' : ''}${extra}"><th scope="row">${T(`${k}.${list}.${j}.h`, { tag: 'span', single: true, ph: 'Linha' })}</th>${r.c.map((_, m) => cell(`${k}.${list}.${j}.c.${m}`, m)).join('')}<td class="rowx ui"><button class="x" data-act="delrow" data-t="${k}" data-list="${list}" data-j="${j}" title="Remover linha" aria-label="Remover linha">×</button></td></tr>`;
+  return `<div class="dtab ${cls}" data-fit>
+    <p class="dtab-cap"><b>Tabela ${++tabN}</b> ${T(k + '.title', { tag: 'span', ph: 'Título da tabela' })}</p>
+    <div class="dtab-w">
+      <table class="dt">
+        <thead><tr><th scope="col" class="corner">${T(k + '.corner', { tag: 'span', single: true, ph: '' })}</th>${t.cols.map((c, j) => `<th scope="col" class="${totCol[j] ? 'tot' : ''}"><span class="colh">${T(`${k}.cols.${j}`, { tag: 'span', single: true, ph: 'Coluna' })}<button class="x ui colx" data-act="delcol" data-t="${k}" data-j="${j}" title="Remover coluna" aria-label="Remover coluna">×</button></span></th>`).join('')}<th class="rowx ui"></th></tr></thead>
+        <tbody>${t.rows.map((r, j) => row('rows', r, j)).join('')}</tbody>
+        ${t.foot.length ? `<tbody class="dt-foot">${t.foot.map((r, j) => row('foot', r, j, j === 0 ? ' first' : '')).join('')}</tbody>` : ''}
+      </table>
+      <div class="dtab-ctl ui">
+        <button data-act="addrow" data-t="${k}" data-list="rows">+ Linha</button>
+        ${cls === 'v' ? `<button data-act="addrow" data-t="${k}" data-list="foot">+ Estatística do modelo</button>` : ''}
+        <button data-act="addcol" data-t="${k}">+ Coluna</button>
+      </div>
+    </div>
+    ${T(k + '.note', { tag: 'p', cls: 'dtab-note', ph: 'Nota e fonte dos dados' })}
+  </div>`;
+}
 function LIST(k, arr, fn, o = {}) {
   return `<div class="list ${o.cls || ''}"${o.style ? ` style="${o.style}"` : ''}>${arr.map((it, j) =>
     `<div class="item">${fn(`${k}.${j}`, it, j)}<button class="x ui" data-act="del" data-list="${k}" data-j="${j}" title="Remover" aria-label="Remover">×</button></div>`).join('')
@@ -280,6 +331,20 @@ const R = {
       ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
     </div>${FOOT(i)}</div>`,
 
+  tabelaH: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main fitmain">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}${T(k + '.lede', { tag: 'p', cls: 'lede fz', ph: 'Parágrafo de abertura' })}
+      ${TABLE(k + '.tbl', p.tbl, 'h')}
+      ${T(k + '.body', { cls: 'body cols fz', ph: 'Texto' })}
+    </div>${FOOT(i)}</div>`,
+
+  tabelaV: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main fitmain">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
+      <div class="tv">
+        ${TABLE(k + '.tbl', p.tbl, 'v')}
+        ${T(k + '.body', { cls: 'body fz', ph: 'Texto' })}
+      </div>
+    </div>${FOOT(i)}</div>`,
+
   texto: (p, i, k) => `<div class="inner">${RUN()}
     <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}${T(k + '.lede', { tag: 'p', cls: 'lede', ph: 'Parágrafo de abertura' })}${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}</div>
     ${FOOT(i)}</div>`,
@@ -302,7 +367,7 @@ function computeSecs() { let n = 0; SEC = state.pages.map(p => (p.type === 'capa
 function pageLabel(p) { return p.type === 'capa' ? 'Capa' : p.type === 'expediente' ? (p.title || 'Expediente') : (p.sec || TYPES[p.type]); }
 
 function render() {
-  computeSecs(); figN = 0;
+  computeSecs(); figN = 0; tabN = 0;
   const c = edColors();
   doc.style.setProperty('--ed', c.ed); doc.style.setProperty('--ed-ink', c.ink); doc.style.setProperty('--ed-deep', c.deep);
   doc.innerHTML = state.pages.map((p, i) => `<section class="page pg-${p.type}" data-i="${i}" data-screen-label="${pad(i + 1)} ${E(pageLabel(p))}">${R[p.type](p, i, 'pages.' + i)}</section>`).join('');
@@ -362,7 +427,18 @@ function applyTints() {
 
 /* aviso de conteúdo que excede a página */
 let ovT;
+/* páginas com tabela: reduz texto e tabela até caberem na página */
+function fitTables() {
+  doc.querySelectorAll('.fitmain').forEach(m => {
+    const pg = m.closest('.page');
+    const wraps = [...m.querySelectorAll('.dtab-w')];
+    const over = () => m.scrollHeight > m.clientHeight + 1 || wraps.some(w => w.scrollWidth > w.clientWidth + 1);
+    let k = 1; pg.style.setProperty('--k', k);
+    while (over() && k > 0.56) { k = +(k - 0.04).toFixed(2); pg.style.setProperty('--k', k); }
+  });
+}
 function checkOverflow() {
+  fitTables();
   doc.querySelectorAll('.page').forEach(pg => {
     let over = false;
     pg.querySelectorAll('.inner, .main').forEach(el => { if (el.scrollHeight > el.clientHeight + 2) over = true; });
@@ -491,7 +567,7 @@ doc.addEventListener('input', e => {
   set(k, v);
   if (k.startsWith('meta.')) refreshMeta(k.slice(5), el);
   if (k.endsWith('.sec') || /^pages\.\d+\.title$/.test(k) && get(k.replace(/\.title$/, '.type')) === 'expediente') { refreshToc(); renderPageList(); }
-  save(); scheduleOverflow();
+  save(); if (el.closest('.fitmain')) { clearTimeout(ovT); ovT = setTimeout(checkOverflow, 250); } else scheduleOverflow();
 });
 doc.addEventListener('keydown', e => {
   const el = e.target.closest('[data-k]');
@@ -509,6 +585,18 @@ doc.addEventListener('click', e => {
   if (b) {
     e.preventDefault();
     const act = b.dataset.act;
+    if (act === 'addrow') { const t = get(b.dataset.t); t[b.dataset.list].push({ h: b.dataset.list === 'foot' ? 'Estatística' : 'Nova linha', c: Array(t.cols.length).fill('') }); commit(); return; }
+    if (act === 'delrow') { get(b.dataset.t)[b.dataset.list].splice(+b.dataset.j, 1); commit(); return; }
+    if (act === 'addcol') {
+      const t = get(b.dataset.t);
+      const at = /^\s*total\s*$/i.test(t.cols[t.cols.length - 1] || '') ? t.cols.length - 1 : t.cols.length;
+      t.cols.splice(at, 0, 'Nova coluna'); [...t.rows, ...t.foot].forEach(r => r.c.splice(at, 0, '')); commit(); return;
+    }
+    if (act === 'delcol') {
+      const t = get(b.dataset.t);
+      if (t.cols.length <= 1) { setStatus('A tabela precisa de ao menos uma coluna.'); return; }
+      const j = +b.dataset.j; t.cols.splice(j, 1); [...t.rows, ...t.foot].forEach(r => r.c.splice(j, 1)); commit(); return;
+    }
     if (act === 'add') { const arr = get(b.dataset.list); arr.push(ITEM[b.dataset.tpl](arr)); commit(); return; }
     if (act === 'del') { get(b.dataset.list).splice(+b.dataset.j, 1); commit(); return; }
     if (act === 'hideisbn') { state.meta.showIsbn = false; commit(); return; }
@@ -679,6 +767,14 @@ function toMarkdown() {
   };
   const figMd = (im, cap) => { fig++; return `${imgRef(im, 'fig-' + pad(fig), 'Fig. ' + fig)}\n\n*Fig. ${fig}. ${cap}*`; };
   const cell = s => String(s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  let tab = 0;
+  const tabMd = t => {
+    tab++;
+    const line = r => `| ${[r.h, ...r.c].map(cell).join(' | ')} |`;
+    return [`**Tabela ${tab}.** ${t.title}`,
+      [`| ${[t.corner, ...t.cols].map(cell).join(' | ')} |`, `| --- | ${t.cols.map(() => '---:').join(' | ')} |`, ...t.rows.map(line), ...t.foot.map(line)].join('\n'),
+      `*${t.note}*`].join('\n\n');
+  };
   const br = s => String(s).split('\n').join('  \n');
   state.pages.forEach((p, i) => {
     const h = SEC[i] ? `## ${pad(SEC[i])} · ${p.sec}` : '';
@@ -720,6 +816,12 @@ function toMarkdown() {
         break;
       case 'duas45':
         out.push(h, `### ${p.title}`, p.intro, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
+        break;
+      case 'tabelaH':
+        out.push(h, `### ${p.title}`, p.lede, tabMd(p.tbl), p.body);
+        break;
+      case 'tabelaV':
+        out.push(h, `### ${p.title}`, tabMd(p.tbl), p.body);
         break;
       case 'texto':
         out.push(h, `### ${p.title}`, p.lede, p.body);
