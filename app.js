@@ -211,12 +211,12 @@ function TABLE(k, t, cls) {
         <tbody>${t.rows.map((r, j) => row('rows', r, j)).join('')}</tbody>
         ${t.foot.length ? `<tbody class="dt-foot">${t.foot.map((r, j) => row('foot', r, j, j === 0 ? ' first' : '')).join('')}</tbody>` : ''}
       </table>
+    </div>
       <div class="dtab-ctl ui">
         <button data-act="addrow" data-t="${k}" data-list="rows">+ Linha</button>
         ${cls === 'v' ? `<button data-act="addrow" data-t="${k}" data-list="foot">+ Estatística do modelo</button>` : ''}
         <button data-act="addcol" data-t="${k}">+ Coluna</button>
       </div>
-    </div>
     ${T(k + '.note', { tag: 'p', cls: 'dtab-note', ph: 'Nota e fonte dos dados' })}
   </div>`;
 }

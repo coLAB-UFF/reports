@@ -220,13 +220,13 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .dt .dt-foot tr.first th,.dt .dt-foot tr.first td{border-top:1px solid var(--ink)}
 .dt .dt-foot th,.dt .dt-foot td{padding-top:calc(1.1mm * var(--k));padding-bottom:calc(1.1mm * var(--k))}
 .dtab.h tbody tr + tr:not(.tot-row) th,.dtab.h tbody tr + tr:not(.tot-row) td{border-top:1px solid rgba(32,30,29,.08)}
-.dt .rowx{width:0;padding:0;border:0!important;position:relative;background:none!important}
-.dt .rowx .x{top:50%;right:-6mm;translate:0 -50%}
+.dt .rowx{width:6mm;padding:0!important;border:0!important;position:relative;background:none!important}
+.dt .rowx .x{top:50%;right:auto;left:50%;translate:-50% -50%}
 .dt tr:hover .rowx .x{display:flex}
 .colh{position:relative;display:inline-block}
 .colx{top:-16px;right:-12px}
 .dt thead th:hover .colx{display:flex}
-.dtab-ctl{position:absolute;right:0;bottom:100%;margin-bottom:1.5mm;display:flex;gap:1.5mm;opacity:0;transition:opacity .15s}
+.dtab-ctl{display:flex;flex-wrap:wrap;gap:1.5mm;opacity:.5;transition:opacity .15s}
 .dtab:hover .dtab-ctl{opacity:1}
 .dtab-ctl button{font:600 11px var(--serif);color:var(--accent-700);background:var(--paper);border:1px dashed var(--accent);border-radius:2px;padding:2px 8px;cursor:pointer;white-space:nowrap}
 .dtab-ctl button:hover{background:var(--accent);color:var(--paper);border-style:solid}
