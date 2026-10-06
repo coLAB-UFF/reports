@@ -263,6 +263,38 @@ function S(path, ph, o = {}) {
     : `<button data-act="pick">Escolher imagem</button>`;
   return `<div class="slot ${has ? 'has' : ''}" data-img="${path}"${o.tint && has ? ' data-tint="1"' : ''}${bg ? ` style="${bg}"` : ''}>${has ? '' : `<span class="slot-ph">${E(ph)}</span>`}<div class="ctl ui">${ctl}</div></div>`;
 }
+const hex2rgb = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const rgb2hex = (r, g, b) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, +v || 0)).toString(16).padStart(2, '0')).join('');
+function closeColorPop() { const p = document.getElementById('cpop'); if (p) p.remove(); document.removeEventListener('pointerdown', cpopOutside, true); document.removeEventListener('keydown', cpopKey, true); }
+function cpopOutside(e) { if (!e.target.closest('#cpop') && !e.target.closest('.dot')) closeColorPop(); }
+function cpopKey(e) { if (e.key === 'Escape') closeColorPop(); }
+function openColorPop(dot) {
+  closeColorPop();
+  const k = dot.dataset.k2, cur = (get(k) || '#000000').toLowerCase(), [r, g, b] = hex2rgb(cur) || [0, 0, 0];
+  const pop = document.createElement('div');
+  pop.id = 'cpop'; pop.className = 'cpop ui';
+  pop.innerHTML = `<div class="cpop-sw">${PALETTE.map(c => `<button class="sw" data-c="${c}" style="background:${c}" aria-pressed="${c === cur}" aria-label="${c}"></button>`).join('')}</div>
+    <label class="cpop-row"><span>Escala</span><input type="color" id="cp-pick" value="${cur}"></label>
+    <div class="cpop-row"><span>RGB</span><div class="cpop-rgb">${[r, g, b].map((v, j) => `<input class="input" type="number" min="0" max="255" data-ch="${j}" value="${v}" aria-label="${'RGB'[j]}">`).join('')}</div></div>
+    <label class="cpop-row"><span>HEX</span><input class="input" id="cp-hex" value="${cur}" maxlength="7" spellcheck="false"></label>`;
+  document.body.appendChild(pop);
+  const rc = dot.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, rc.left - 8)) + 'px';
+  pop.style.top = (rc.bottom + h + 8 > innerHeight ? rc.top - h - 8 : rc.bottom + 8) + 'px';
+  const apply = (c, from) => {
+    c = c.toLowerCase(); set(k, c); dot.style.background = c; save();
+    const rgb = hex2rgb(c);
+    if (from !== 'pick') pop.querySelector('#cp-pick').value = c;
+    if (from !== 'hex') pop.querySelector('#cp-hex').value = c;
+    if (from !== 'rgb') pop.querySelectorAll('[data-ch]').forEach((el, j) => { el.value = rgb[j]; });
+    pop.querySelectorAll('[data-c]').forEach(el => el.setAttribute('aria-pressed', el.dataset.c === c));
+  };
+  pop.addEventListener('click', e => { const s = e.target.closest('[data-c]'); if (s) apply(s.dataset.c); });
+  pop.querySelector('#cp-pick').addEventListener('input', e => apply(e.target.value, 'pick'));
+  pop.querySelector('#cp-hex').addEventListener('input', e => { let v = e.target.value.trim(); if (!v.startsWith('#')) v = '#' + v; if (hex2rgb(v)) apply(v, 'hex'); });
+  pop.querySelectorAll('[data-ch]').forEach(el => el.addEventListener('input', () => { const v = [...pop.querySelectorAll('[data-ch]')].map(i => i.value); apply(rgb2hex(...v), 'rgb'); }));
+  setTimeout(() => { document.addEventListener('pointerdown', cpopOutside, true); document.addEventListener('keydown', cpopKey, true); });
+}
 const dotBtn = (k, c) => `<button class="dot" data-act="cycle" data-k2="${k}" style="background:${c}" title="Trocar cor" aria-label="Trocar cor"></button>`;
 function tocHTML() {
   const rows = state.pages.map((p, i) => SEC[i] ? `<b>${pad(SEC[i])}</b><span>${E(p.sec)}</span>` : '').join('');
@@ -385,7 +417,7 @@ const R = {
       </div>
     </div>${FOOT(i)}</div>`,
 
-  tresL: (p, i, k) => `<div class="inner">${RUN()}
+  tresL: (p, i, k) => `<div class="inner tight">${RUN()}
     <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
       <div class="trio-stack">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar rwide">${S(`${k}.figs.${j}.img`, 'Imagem horizontal (5386 × 2370)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
     </div>${FOOT(i)}</div>`,
@@ -673,7 +705,7 @@ doc.addEventListener('click', e => {
     if (act === 'add') { const arr = get(b.dataset.list); arr.push(ITEM[b.dataset.tpl](arr)); commit(); return; }
     if (act === 'del') { get(b.dataset.list).splice(+b.dataset.j, 1); commit(); return; }
     if (act === 'hideisbn') { state.meta.showIsbn = false; commit(); return; }
-    if (act === 'cycle') { const k = b.dataset.k2; const n = PALETTE[(PALETTE.indexOf(get(k)) + 1) % PALETTE.length]; set(k, n); b.style.background = n; save(); return; }
+    if (act === 'cycle') { openColorPop(b); return; }
     const slot = b.closest('.slot'); if (!slot) return;
     const k = slot.dataset.img, im = get(k);
     if (act === 'pick') pickImage(k);

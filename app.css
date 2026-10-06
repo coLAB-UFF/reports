@@ -144,6 +144,15 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .blk{display:flex;flex-direction:column;gap:2.5mm}
 .mut{color:var(--mut)}
 .dot{width:3mm;height:3mm;border-radius:50%;border:0;padding:0;cursor:pointer;flex:none;display:inline-block}
+.dot:hover{outline:1.5px solid var(--ink);outline-offset:1.5px}
+.cpop{position:fixed;z-index:1000;width:232px;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--paper);border-radius:2px;box-shadow:0 10px 30px rgba(32,30,29,.18),0 0 0 1px rgba(32,30,29,.08);font-size:13px}
+.cpop-sw{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.cpop .sw{width:100%;height:auto;aspect-ratio:1}
+.cpop-row{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;gap:8px}
+.cpop-row>span{color:var(--mut)}
+.cpop-rgb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cpop .input{width:100%;min-width:0;padding:5px 6px;font-size:13px}
+.cpop input[type=color]{width:100%;height:30px;padding:0;border:0;background:none;cursor:pointer}
 
 /* episódio */
 .main.ep{display:grid;grid-template-columns:48mm minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:10mm}
@@ -260,9 +269,13 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .r11{aspect-ratio:1/1}
 .stack{display:flex;flex-direction:column;gap:5mm;min-width:0}
 .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5mm}
-.trio-stack{flex:1;min-height:0;display:flex;flex-direction:column;gap:4mm}
-.trio-stack .fig-ar{flex:1;min-height:0}
-.trio-stack .ar{flex:1;min-height:0;width:auto;max-width:100%;align-self:flex-start}
+.inner.tight{padding-top:10mm;padding-bottom:8mm;gap:4mm}
+.tight .main{gap:3mm}
+.tight .h2{font-size:22px;line-height:1.2}
+.trio-stack{flex:1;min-height:0;display:flex;flex-direction:column;gap:2mm}
+.trio-stack .fig-ar{flex:0 1 auto;min-height:0;position:relative}
+.trio-stack figcaption{position:absolute;left:0;bottom:0;max-width:75%;background:var(--paper);padding:1mm 2.5mm 0 0;font-size:10.5px}
+.trio-stack .ar{flex:none;width:100%}
 .quad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5mm}
 
 /* capa */
