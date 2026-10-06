@@ -168,6 +168,7 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 /* figura + legenda */
 .map{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 50mm;grid-template-rows:minmax(0,1fr);gap:8mm}
 .map .fig{min-height:0}
+.map-sq{flex:0 0 auto;align-items:start}
 .map-side{display:flex;flex-direction:column;gap:8mm;font-size:12.5px;line-height:1.5;min-height:0}
 .legend{display:flex;flex-direction:column;gap:2mm}
 .legend .item{display:grid;grid-template-columns:3.5mm minmax(0,1fr) auto;column-gap:2.5mm;align-items:center}
@@ -176,6 +177,8 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .cls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5mm}
 .cls .item{display:flex;flex-direction:column;gap:1.5mm}
 .cl-img{height:32mm;display:flex}
+.cls4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.cls4 .cl-img{height:38mm}
 .cl-meta{display:flex;align-items:center;gap:2mm;font-size:11.5px}
 .cl-meta .dot{width:2.5mm;height:2.5mm}
 .ml{margin-left:auto}
@@ -256,6 +259,7 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .rwide{aspect-ratio:5386/2370}
 .r11{aspect-ratio:1/1}
 .stack{display:flex;flex-direction:column;gap:5mm;min-width:0}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5mm}
 .quad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5mm}
 
 /* capa */

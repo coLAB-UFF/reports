@@ -9,12 +9,16 @@ const TYPES = {
   figura: 'Figura larga',
   mapa: 'Figura + legenda',
   clusters: 'Múltiplas figuras',
+  clusters4: 'Múltiplas figuras (4)',
+  mapaQ: 'Figura quadrada + legenda',
   compose: 'Síntese',
   imagem169: 'Texto + imagem 16:9',
   imagem45: 'Texto + imagem 4:5',
   duas45: 'Texto + duas imagens 4:5',
   tres: 'Texto + 3 imagens',
+  tresL: 'Texto + 3 imagens (largura total)',
   quatro: 'Texto + 4 imagens',
+  oito: 'Texto + 8 imagens',
   tabelaH: 'Texto + tabela horizontal',
   tabelaV: 'Texto + tabela vertical',
   texto: 'Texto corrido',
@@ -57,6 +61,14 @@ const NEW = {
     intro: 'Curabitur sodales ligula in libero. Sed dignissim lacinia nunc, curabitur tortor pellentesque nibh aenean quam.',
     fig: { img: img('contain'), cap: 'Dendrograma (método de ligação lorem ipsum). O corte em k = 6 define os grupos abaixo.' },
     cls: ['Lorem ipsum', 'Dolor sit', 'Amet', 'Adipiscing', 'Elit sed', 'Outros'].map((name, j) => ({ c: PALETTE[j], name, n: 'n = 000', img: img() })) }),
+  clusters4: () => ({ type: 'clusters4', sec: 'Clusters hierárquicos', title: 'Lorem ipsum dolor sit amet elit',
+    intro: 'Curabitur sodales ligula in libero. Sed dignissim lacinia nunc, curabitur tortor pellentesque nibh aenean quam.',
+    fig: { img: img('contain'), cap: 'Dendrograma (método de ligação lorem ipsum). O corte em k = 4 define os grupos abaixo.' },
+    cls: ['Lorem ipsum', 'Dolor sit', 'Amet', 'Adipiscing'].map((name, j) => ({ c: PALETTE[j], name, n: 'n = 000', img: img() })) }),
+  mapaQ: () => ({ type: 'mapaQ', sec: 'Embeddings', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing', legLabel: 'Agrupamentos',
+    fig: { img: img('contain'), cap: 'Projeção UMAP de embeddings visuais (modelo) de 0.000 imagens. Proximidade indica semelhança visual.' },
+    leg: ['Lorem ipsum', 'Dolor sit', 'Amet consectetur', 'Adipiscing', 'Elit sed', 'Outros'].map((l, j) => ({ c: PALETTE[j], l, v: '00%' })),
+    body: L1 + '\n\n' + L2 }),
   compose: () => ({ type: 'compose', sec: 'Compose e síntese', title: 'Lorem ipsum dolor sit amet',
     cmps: [['A', 'Lorem ipsum'], ['B', 'Dolor sit'], ['C', 'Amet elit']].map(([l, name]) => ({ l, name, n: 'n = 000', img: img() })),
     cap: 'Compose: sobreposição de todas as imagens de cada grupo, alinhadas e com opacidade igual.',
@@ -76,6 +88,14 @@ const NEW = {
   tres: () => ({ type: 'tres', sec: 'Sequência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
     lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
     figs: [0, 1, 2].map(() => ({ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' })),
+    body: [L1, L2].join('\n\n') }),
+  tresL: () => ({ type: 'tresL', sec: 'Sequência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
+    lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
+    figs: [0, 1, 2].map(() => ({ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' })),
+    body: [L1, L2, L1].join('\n\n') }),
+  oito: () => ({ type: 'oito', sec: 'Comparação', title: 'Lorem ipsum dolor sit amet consectetur',
+    intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
+    figs: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(l => ({ img: img(), cap: l + ' · Lorem ipsum dolor sit amet.' })),
     body: [L1, L2].join('\n\n') }),
   quatro: () => ({ type: 'quatro', sec: 'Comparação', title: 'Lorem ipsum dolor sit amet consectetur',
     intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
@@ -306,6 +326,24 @@ const R = {
       ${LIST(k + '.cls', p.cls, (kk, it, j) => `<div class="cl-img">${S(kk + '.img', 'Exemplares C' + (j + 1))}</div><div class="cl-meta">${dotBtn(kk + '.c', it.c)}<b>C${j + 1}</b>${T(kk + '.name', { tag: 'span', single: true, ph: 'Nome' })}${T(kk + '.n', { tag: 'span', cls: 'mut ml', single: true, ph: 'n = 000' })}</div>`, { cls: 'cls', tpl: 'cl', add: 'Cluster' })}
     </div>${FOOT(i)}</div>`,
 
+  clusters4: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}
+      <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
+      <figure class="fig">${S(k + '.fig.img', 'Dendrograma da clusterização hierárquica, com corte indicado')}${CAP(k + '.fig.cap')}</figure>
+      ${LIST(k + '.cls', p.cls, (kk, it, j) => `<div class="cl-img">${S(kk + '.img', 'Exemplares C' + (j + 1))}</div><div class="cl-meta">${dotBtn(kk + '.c', it.c)}<b>C${j + 1}</b>${T(kk + '.name', { tag: 'span', single: true, ph: 'Nome' })}${T(kk + '.n', { tag: 'span', cls: 'mut ml', single: true, ph: 'n = 000' })}</div>`, { cls: 'cls cls4', tpl: 'cl', add: 'Cluster' })}
+    </div>${FOOT(i)}</div>`,
+
+  mapaQ: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
+      <div class="map map-sq">
+        <figure class="fig-ar"><div class="ar r11">${S(k + '.fig.img', 'Mapa de embeddings quadrado (1:1)')}</div>${CAP(k + '.fig.cap')}</figure>
+        <div class="map-side">
+          <div class="blk">${T(k + '.legLabel', { cls: 'lbl', single: true })}${LIST(k + '.leg', p.leg, (kk, it) => dotBtn(kk + '.c', it.c) + T(kk + '.l', { tag: 'span', single: true, ph: 'Grupo' }) + T(kk + '.v', { tag: 'span', cls: 'mut', single: true, ph: '00%' }), { cls: 'legend', tpl: 'leg', add: 'Grupo' })}</div>
+          ${T(k + '.body', { cls: 'small', ph: 'Análise' })}
+        </div>
+      </div>
+    </div>${FOOT(i)}</div>`,
+
   compose: (p, i, k) => `<div class="inner">${RUN()}
     <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
       <div class="cmps-wrap">${LIST(k + '.cmps', p.cmps, kk => `<div class="cmp-img">${S(kk + '.img', 'Imagem composta (média) do grupo ou período')}</div><div class="cmp-cap">${T(kk + '.l', { tag: 'b', single: true, ph: 'A' })}<span>·</span>${T(kk + '.name', { tag: 'span', single: true, ph: 'Grupo' })}<span>·</span>${T(kk + '.n', { tag: 'span', single: true, ph: 'n = 000' })}</div>`,
@@ -347,6 +385,20 @@ const R = {
         <div class="stack">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar rwide">${S(`${k}.figs.${j}.img`, 'Imagem horizontal (5386 × 2370)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
         <div class="split-txt">${T(k + '.lede', { tag: 'p', cls: 'lede', ph: 'Parágrafo de abertura' })}${T(k + '.body', { cls: 'body', ph: 'Texto' })}</div>
       </div>
+    </div>${FOOT(i)}</div>`,
+
+  tresL: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
+      <div class="trio">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar rwide">${S(`${k}.figs.${j}.img`, 'Imagem horizontal (5386 × 2370)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
+      ${T(k + '.lede', { tag: 'p', cls: 'lede', ph: 'Parágrafo de abertura' })}
+      ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
+    </div>${FOOT(i)}</div>`,
+
+  oito: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}
+      <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
+      <div class="quad">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar r11">${S(`${k}.figs.${j}.img`, 'Imagem quadrada (1:1)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
+      ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
     </div>${FOOT(i)}</div>`,
 
   quatro: (p, i, k) => `<div class="inner">${RUN()}
@@ -820,9 +872,11 @@ function toMarkdown() {
         out.push(h, `### ${p.title}`, p.intro, figMd(p.fig.img, p.fig.cap), p.reads.map(r => `- **${r.l}** ${r.t}`).join('\n'));
         break;
       case 'mapa':
+      case 'mapaQ':
         out.push(h, `### ${p.title}`, figMd(p.fig.img, p.fig.cap), `**${p.legLabel}**\n\n` + p.leg.map(l => `- ${l.l}: ${l.v}`).join('\n'), p.body);
         break;
       case 'clusters':
+      case 'clusters4':
         out.push(h, `### ${p.title}`, p.intro, figMd(p.fig.img, p.fig.cap),
           p.cls.map((c, j) => `**C${j + 1} · ${c.name}** (${c.n})\n\n${imgRef(c.img, `pg${pad(i + 1)}-cluster-c${j + 1}`, 'Exemplares C' + (j + 1))}`).join('\n\n'));
         break;
@@ -840,9 +894,11 @@ function toMarkdown() {
         out.push(h, `### ${p.title}`, figMd(p.fig.img, p.fig.cap), p.lede, p.body);
         break;
       case 'tres':
+      case 'tresL':
         out.push(h, `### ${p.title}`, p.lede, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
         break;
       case 'quatro':
+      case 'oito':
         out.push(h, `### ${p.title}`, p.intro, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
         break;
       case 'tabelaH':
