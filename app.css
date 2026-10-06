@@ -252,6 +252,8 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .exp-col{display:flex;flex-direction:column;gap:5mm}
 .exp-col .item{display:flex;flex-direction:column;gap:1mm}
 .grow{flex:1}
+.exp-meth{max-width:120mm}
+.exporting .exp-meth:has(.ed:empty:not(.lbl)){display:none}
 .exp-foot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8mm;align-items:end}
 .about{font-size:12px;line-height:1.55;color:var(--mut);max-width:100mm;margin:0}
 .exp-logo{display:flex;flex-direction:column;align-items:flex-end;gap:1mm;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);text-align:right}

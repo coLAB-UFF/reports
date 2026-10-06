@@ -127,6 +127,7 @@ const NEW = {
   texto: () => ({ type: 'texto', sec: 'Discussão', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
     lede: L1, body: [L1, L2, L1, L2].join('\n\n') }),
   expediente: () => ({ type: 'expediente', title: 'Expediente',
+    methLabel: 'Nota metodológica', meth: 'Coleta via lorem ipsum entre 00/00 e 00/00/2026. Embeddings extraídos com modelo dolor sit; redução por UMAP; clusterização aglomerativa (ligação de Ward). Imagens duplicadas removidas por hash perceptual.',
     credits: [['Coordenação', 'Nome Sobrenome'], ['Pesquisa e redação', 'Nome Sobrenome\nNome Sobrenome\nNome Sobrenome'],
       ['Coleta e análise de dados', 'Nome Sobrenome\nNome Sobrenome'], ['Visualizações', 'Nome Sobrenome'],
       ['Projeto gráfico e diagramação', 'Nome Sobrenome'], ['Revisão', 'Nome Sobrenome']].map(([r, n]) => ({ r, n })),
@@ -460,6 +461,7 @@ const R = {
       ${LIST(k + '.credits', p.credits, kk => T(kk + '.r', { cls: 'lbl', single: true, ph: 'Função' }) + T(kk + '.n', { ph: 'Nomes' }), { cls: 'exp-col', tpl: 'credit', add: 'Crédito' })}
       ${LIST(k + '.info', p.info, kk => T(kk + '.l', { cls: 'lbl', single: true, ph: 'Rótulo' }) + T(kk + '.t', { ph: 'Texto' }), { cls: 'exp-col', tpl: 'info', add: 'Informação' })}
     </div>
+    <div class="blk exp-meth">${T(k + '.methLabel', { cls: 'lbl', single: true, ph: 'Nota metodológica' })}${T(k + '.meth', { tag: 'p', cls: 'small2', ph: 'Descreva procedimentos de coleta e análise (opcional)' })}</div>
     <div class="grow"></div>
     <div class="exp-foot">${T(k + '.about', { tag: 'p', cls: 'about', ph: 'Sobre a publicação' })}<div class="exp-logo"><img src="${LOGO.black}" alt="coLAB"><span>${M('inst')}</span></div></div>
   </div>`
@@ -628,6 +630,7 @@ function upgrade(o) {
   if (o.meta.isbn === undefined) o.meta.isbn = '000-00-00000-00-0';
   if (o.meta.showIsbn === undefined) o.meta.showIsbn = true;
   delete o.meta.issn;
+  o.pages.forEach(p => { if (p.type === 'expediente' && p.meth === undefined) { p.methLabel = 'Nota metodológica'; p.meth = ''; } });
   return o;
 }
 async function load() {
@@ -941,7 +944,7 @@ function toMarkdown() {
         out.push(h, `### ${p.title}`, p.lede, p.body);
         break;
       case 'expediente':
-        out.push(`## ${p.title}`, p.credits.map(c => `**${c.r}**  \n${br(c.n)}`).join('\n\n'), p.info.map(x => `**${x.l}**  \n${br(x.t)}`).join('\n\n'), `*${p.about}*`);
+        out.push(`## ${p.title}`, p.credits.map(c => `**${c.r}**  \n${br(c.n)}`).join('\n\n'), p.info.map(x => `**${x.l}**  \n${br(x.t)}`).join('\n\n'), ...(p.meth ? [`**${p.methLabel}**  \n${p.meth}`] : []), `*${p.about}*`);
         break;
     }
     if (i < state.pages.length - 1) out.push('---');
