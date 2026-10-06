@@ -511,7 +511,7 @@ async function tint(src, color) {
   const key = color + '|' + src.length + '|' + src.slice(-48);
   if (tintCache.has(key)) return tintCache.get(key);
   const im = await loadImg(urlFor(src));
-  const w = Math.min(im.naturalWidth, 2000), h = Math.round(im.naturalHeight * w / im.naturalWidth);
+  const w = Math.min(im.naturalWidth, 4500), h = Math.round(im.naturalHeight * w / im.naturalWidth);
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
   const x = cv.getContext('2d'); x.drawImage(im, 0, 0, w, h);
   const d = x.getImageData(0, 0, w, h), a = d.data, [cr, cg, cb] = hexRgb(color);
@@ -648,8 +648,8 @@ const readAsDataURL = f => new Promise((res, rej) => { const r = new FileReader(
 async function importFile(file) {
   const url = await readAsDataURL(file);
   const im = await loadImg(url);
-  const max = 2400, w = im.naturalWidth, h = im.naturalHeight;
-  if (w <= max && h <= max && file.size < 1.5e6) return url;
+  const max = 5000, w = im.naturalWidth, h = im.naturalHeight;
+  if (w <= max && h <= max && file.size < 8e6) return url;
   const s = Math.min(1, max / Math.max(w, h));
   const cv = document.createElement('canvas'); cv.width = Math.round(w * s); cv.height = Math.round(h * s);
   cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
@@ -824,14 +824,15 @@ $('#pdfApp').addEventListener('click', async () => {
     await document.fonts.ready;
     document.body.classList.add('exporting');
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    await bakeSlots(2.5);
+    await bakeSlots(3);
     const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true });
     const pages = [...doc.querySelectorAll('.page')];
     for (let i = 0; i < pages.length; i++) {
       setStatus(`Gerando PDF… página ${i + 1} de ${pages.length}`);
-      const cv = await window.html2canvas(pages[i], { scale: 2.5, useCORS: true, backgroundColor: null, logging: false });
+      const cv = await window.html2canvas(pages[i], { scale: 3, useCORS: true, backgroundColor: null, logging: false });
       if (i) pdf.addPage();
-      pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      pdf.addImage(cv.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      await hiresLayer(pages[i], pdf, cv);
       const pr = pages[i].getBoundingClientRect(), f = 210 / pr.width;
       pages[i].querySelectorAll('a[href^="http"]').forEach(a => {
         const r = a.getBoundingClientRect();
@@ -846,10 +847,48 @@ $('#pdfApp').addEventListener('click', async () => {
   } finally { document.body.classList.remove('exporting'); render(); busy(false); }
 });
 
+/* sobrepõe cada imagem na resolução original (até 4500 px no lado maior), recortada como na página;
+   elementos posicionados sobre as imagens (ex.: legendas sobrepostas) são reaplicados por cima */
+async function hiresLayer(page, pdf, cv) {
+  const pr = page.getBoundingClientRect(), f = 210 / pr.width, px = cv.width / pr.width;
+  const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  const absEls = [...page.querySelectorAll('*')].filter(e => !e.closest('.ui') && getComputedStyle(e).position === 'absolute' && e.offsetWidth);
+  const over = new Set();
+  for (const el of page.querySelectorAll('.slot.has')) {
+    const src = el.dataset.src; if (!src) continue;
+    let im; try { im = await loadImg(src); } catch { continue; }
+    const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    const iw = im.naturalWidth, ih = im.naturalHeight, contain = el.dataset.fit === 'contain';
+    let x = r.left, y = r.top, w = r.width, h = r.height, sx = 0, sy = 0, sw = iw, sh = ih;
+    if (contain) { const s = Math.min(w / iw, h / ih); x += (w - iw * s) / 2; y += (h - ih * s) / 2; w = iw * s; h = ih * s; }
+    else { const s = Math.max(w / iw, h / ih); sw = w / s; sh = h / s; sx = (iw - sw) / 2; sy = (ih - sh) / 2; }
+    const L = Math.max(x, pr.left), T = Math.max(y, pr.top), R = Math.min(x + w, pr.right), B = Math.min(y + h, pr.bottom);
+    if (R <= L || B <= T) continue;
+    const kx = sw / w, ky = sh / h;
+    sx += (L - x) * kx; sy += (T - y) * ky; sw = (R - L) * kx; sh = (B - T) * ky;
+    const k = Math.min(1, 4500 / Math.max(sw, sh));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(sw * k)); c.height = Math.max(1, Math.round(sh * k));
+    const g = c.getContext('2d');
+    let type = ''; try { type = /^data:([^;,]+)/.exec(src)?.[1] || (await (await fetch(src)).blob()).type; } catch { /* assume JPEG */ }
+    const png = /png|gif|webp|svg/.test(type);
+    if (!png) { g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); }
+    g.drawImage(im, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    pdf.addImage(png ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.95), png ? 'PNG' : 'JPEG', (L - pr.left) * f, (T - pr.top) * f, (R - L) * f, (B - T) * f, undefined, 'MEDIUM');
+    absEls.forEach(e => { if (e !== el && !e.contains(el) && hit(e.getBoundingClientRect(), { left: L, top: T, right: R, bottom: B })) over.add(e); });
+  }
+  for (const e of over) {
+    const r = e.getBoundingClientRect(), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(r.width * px)); c.height = Math.max(1, Math.round(r.height * px));
+    c.getContext('2d').drawImage(cv, (r.left - pr.left) * px, (r.top - pr.top) * px, c.width, c.height, 0, 0, c.width, c.height);
+    pdf.addImage(c.toDataURL('image/png'), 'PNG', (r.left - pr.left) * f, (r.top - pr.top) * f, r.width * f, r.height * f, undefined, 'FAST');
+  }
+}
+
 /* recorta cada imagem no tamanho exato da área, para que a captura não dependa de background-size */
 async function bakeSlots(scale) {
   await Promise.all([...doc.querySelectorAll('.slot.has')].map(async el => {
     const m = /url\(["']?(.*?)["']?\)/.exec(el.style.backgroundImage); if (!m) return;
+    el.dataset.src = m[1]; el.dataset.fit = el.style.backgroundSize === 'contain' ? 'contain' : 'cover';
     try {
       const im = await loadImg(m[1]);
       const w = Math.max(1, Math.round(el.clientWidth * scale)), h = Math.max(1, Math.round(el.clientHeight * scale));
