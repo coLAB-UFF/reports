@@ -90,9 +90,7 @@ const NEW = {
     figs: [0, 1, 2].map(() => ({ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' })),
     body: [L1, L2].join('\n\n') }),
   tresL: () => ({ type: 'tresL', sec: 'Sequência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
-    lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
-    figs: [0, 1, 2].map(() => ({ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' })),
-    body: [L1, L2, L1].join('\n\n') }),
+    figs: [0, 1, 2].map(() => ({ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' })) }),
   oito: () => ({ type: 'oito', sec: 'Comparação', title: 'Lorem ipsum dolor sit amet consectetur',
     intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
     figs: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(l => ({ img: img(), cap: l + ' · Lorem ipsum dolor sit amet.' })),
@@ -389,9 +387,7 @@ const R = {
 
   tresL: (p, i, k) => `<div class="inner">${RUN()}
     <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
-      <div class="trio">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar rwide">${S(`${k}.figs.${j}.img`, 'Imagem horizontal (5386 × 2370)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
-      ${T(k + '.lede', { tag: 'p', cls: 'lede', ph: 'Parágrafo de abertura' })}
-      ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
+      <div class="trio-stack">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar rwide">${S(`${k}.figs.${j}.img`, 'Imagem horizontal (5386 × 2370)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
     </div>${FOOT(i)}</div>`,
 
   oito: (p, i, k) => `<div class="inner">${RUN()}
@@ -893,8 +889,10 @@ function toMarkdown() {
       case 'imagem45':
         out.push(h, `### ${p.title}`, figMd(p.fig.img, p.fig.cap), p.lede, p.body);
         break;
-      case 'tres':
       case 'tresL':
+        out.push(h, `### ${p.title}`, ...p.figs.map(f => figMd(f.img, f.cap)));
+        break;
+      case 'tres':
         out.push(h, `### ${p.title}`, p.lede, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
         break;
       case 'quatro':

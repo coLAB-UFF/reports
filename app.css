@@ -260,6 +260,9 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .r11{aspect-ratio:1/1}
 .stack{display:flex;flex-direction:column;gap:5mm;min-width:0}
 .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5mm}
+.trio-stack{flex:1;min-height:0;display:flex;flex-direction:column;gap:4mm}
+.trio-stack .fig-ar{flex:1;min-height:0}
+.trio-stack .ar{flex:1;min-height:0;width:auto;max-width:100%;align-self:flex-start}
 .quad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5mm}
 
 /* capa */
