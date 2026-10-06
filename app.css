@@ -253,6 +253,10 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .split{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:8mm;align-items:start}
 .split-txt{display:flex;flex-direction:column;gap:4mm}
 .pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6mm}
+.rwide{aspect-ratio:5386/2370}
+.r11{aspect-ratio:1/1}
+.stack{display:flex;flex-direction:column;gap:5mm;min-width:0}
+.quad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5mm}
 
 /* capa */
 .pg-capa{background:var(--ed);color:var(--ed-ink)}

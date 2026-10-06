@@ -13,6 +13,8 @@ const TYPES = {
   imagem169: 'Texto + imagem 16:9',
   imagem45: 'Texto + imagem 4:5',
   duas45: 'Texto + duas imagens 4:5',
+  tres: 'Texto + 3 imagens',
+  quatro: 'Texto + 4 imagens',
   tabelaH: 'Texto + tabela horizontal',
   tabelaV: 'Texto + tabela vertical',
   texto: 'Texto corrido',
@@ -71,6 +73,14 @@ const NEW = {
     intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
     figs: [{ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' }, { img: img(), cap: 'Sed cursus ante dapibus diam. Fonte: plataforma, 00/00/2026.' }],
     body: [L1, L2].join('\n\n') }),
+  tres: () => ({ type: 'tres', sec: 'Sequência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
+    lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
+    figs: [0, 1, 2].map(() => ({ img: img(), cap: 'Lorem ipsum dolor sit amet. Fonte: plataforma, 00/00/2026.' })),
+    body: [L1, L2].join('\n\n') }),
+  quatro: () => ({ type: 'quatro', sec: 'Comparação', title: 'Lorem ipsum dolor sit amet consectetur',
+    intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
+    figs: ['A', 'B', 'C', 'D'].map(l => ({ img: img(), cap: l + ' · Lorem ipsum dolor sit amet.' })),
+    body: [L1, L2, L1].join('\n\n') }),
   tabelaH: () => ({ type: 'tabelaH', sec: 'Tabela de contingência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
     lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
     tbl: { title: 'Distribuição das imagens por cluster visual e plataforma', corner: 'Cluster',
@@ -328,6 +338,21 @@ const R = {
     <div class="main">${KICK(i, k)}
       <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
       <div class="pair">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar r45">${S(`${k}.figs.${j}.img`, 'Imagem em formato retrato (4:5)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
+      ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
+    </div>${FOOT(i)}</div>`,
+
+  tres: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
+      <div class="split">
+        <div class="stack">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar rwide">${S(`${k}.figs.${j}.img`, 'Imagem horizontal (5386 × 2370)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
+        <div class="split-txt">${T(k + '.lede', { tag: 'p', cls: 'lede', ph: 'Parágrafo de abertura' })}${T(k + '.body', { cls: 'body', ph: 'Texto' })}</div>
+      </div>
+    </div>${FOOT(i)}</div>`,
+
+  quatro: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}
+      <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
+      <div class="quad">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar r11">${S(`${k}.figs.${j}.img`, 'Imagem quadrada (1:1)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
       ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
     </div>${FOOT(i)}</div>`,
 
@@ -814,7 +839,10 @@ function toMarkdown() {
       case 'imagem45':
         out.push(h, `### ${p.title}`, figMd(p.fig.img, p.fig.cap), p.lede, p.body);
         break;
-      case 'duas45':
+      case 'tres':
+        out.push(h, `### ${p.title}`, p.lede, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
+        break;
+      case 'quatro':
         out.push(h, `### ${p.title}`, p.intro, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
         break;
       case 'tabelaH':
