@@ -807,7 +807,7 @@ function download(blob, name) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
-const exportBtns = ['#pdfPrint', '#pdfApp', '#mdExport'].map(s => $(s));
+const exportBtns = ['#pdfPrint', '#pdfApp', '#mdExport', '#mdImport'].map(s => $(s));
 const busy = on => exportBtns.forEach(b => { b.disabled = on; });
 
 $('#pdfPrint').addEventListener('click', async () => {
@@ -989,8 +989,125 @@ function toMarkdown() {
     }
     if (i < state.pages.length - 1) out.push('---');
   });
-  return { md: out.filter(s => s && String(s).trim()).join('\n\n') + '\n', files };
+  /* cópia completa do documento, para o app reimportar com fidelidade (imagens apontam para imagens/) */
+  const known = new Map(files.map(([f, s]) => [s, f])); let extra = 0;
+  const data = JSON.stringify(state, (key, v) => {
+    if (key !== 'src' || typeof v !== 'string' || !v.startsWith('data:')) return v;
+    let f = known.get(v);
+    if (!f) { f = `imagens/extra-${pad(++extra)}.${ext(v)}`; files.push([f, v]); known.set(v, f); }
+    return f;
+  });
+  const b64 = btoa(unescape(encodeURIComponent(data)));
+  return { md: out.filter(s => s && String(s).trim()).join('\n\n') + `\n\n<!-- reportlab:${b64} -->\n`, files };
 }
+
+/* ——— importação de Markdown ——— */
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); });
+
+/* Markdown sem os dados do app: reconstrói páginas a partir de títulos, parágrafos e figuras */
+function mdToDoc(md) {
+  const d = defaultDoc(), pages = [];
+  const clean = s => s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/ {2}\n/g, '\n').trim();
+  const fill = (type, sec, title, paras, figs) => {
+    const p = NEW[type]();
+    if ('sec' in p) p.sec = sec || p.sec;
+    p.title = title || '';
+    if ('lede' in p) p.lede = paras.shift() || '';
+    if ('intro' in p) p.intro = paras.shift() || '';
+    if ('body' in p) p.body = paras.join('\n\n');
+    if (p.fig) p.fig = figs[0] || { img: img(), cap: '' };
+    if (p.figs) p.figs = p.figs.map((f, j) => figs[j] || { img: img(), cap: '' });
+    return p;
+  };
+  md.replace(/<!--[\s\S]*?-->/g, '').split(/\n-{3,}[ \t]*\n/).forEach(ch => {
+    const blocks = ch.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+    let h1 = '', sec = '', title = '', mm; const paras = [], figs = [];
+    for (let j = 0; j < blocks.length; j++) {
+      const b = blocks[j];
+      if ((mm = /^#\s+(.+)/.exec(b))) h1 = mm[1].trim();
+      else if ((mm = /^##\s+(?:\d+\s*·\s*)?(.+)/.exec(b))) sec = mm[1].trim();
+      else if ((mm = /^#{3,6}\s+(.+)/.exec(b))) title = mm[1].trim();
+      else if ((mm = /^!\[[^\]]*\]\(<?([^)\s>]+)>?[^)]*\)$/.exec(b))) {
+        let cap = ''; const nx = blocks[j + 1];
+        if (nx && /^\*[^*][\s\S]*\*$/.test(nx)) { cap = nx.slice(1, -1).replace(/^Fig\.\s*\d+\.\s*/, ''); j++; }
+        figs.push({ img: { src: mm[1], fit: 'cover' }, cap });
+      } else paras.push(clean(b));
+    }
+    if (h1) {
+      const c = NEW.capa(); c.title = h1; c.subtitle = '';
+      paras.forEach(t => {
+        if ((mm = /^(.+?) · coLAB — Nº (\S+) · ([^\n]+)/.exec(t))) { d.meta.serie = mm[1]; d.meta.numero = mm[2]; d.meta.data = mm[3].trim(); const doi = /DOI: \[([^\]]+)\]/.exec(t); if (doi) d.meta.doi = doi[1]; }
+        else if (/^Temas:/.test(t)) c.tags = t.replace(/^Temas:\s*/, '').split(/\s*·\s*/).filter(Boolean);
+        else if (!c.subtitle) c.subtitle = t;
+      });
+      if (figs[0]) { c.img = figs[0].img; d.meta.capaImagem = true; }
+      pages.push(c); return;
+    }
+    if (/^expediente$/i.test(sec)) { const e = d.pages.find(p => p.type === 'expediente'); if (e) pages.push(e); return; }
+    if (!title && !sec && !paras.length && !figs.length) return;
+    if (!figs.length) { pages.push(fill('texto', sec, title, paras, figs)); return; }
+    for (let j = 0; j < figs.length; j += 8) {
+      const g = figs.slice(j, j + 8), ps = j ? [] : paras;
+      const type = g.length === 1 ? 'imagem169' : g.length === 2 ? 'duas45' : g.length === 3 ? 'tres' : g.length === 4 ? 'quatro' : 'oito';
+      pages.push(fill(type, sec, j ? title + ' (cont.)' : title, ps, g));
+    }
+  });
+  if (!pages.length) throw new Error('vazio');
+  if (pages[0].type !== 'capa') pages.unshift(d.pages.find(p => p.type === 'capa') || NEW.capa());
+  if (!pages.some(p => p.type === 'expediente')) pages.push(d.pages.find(p => p.type === 'expediente') || NEW.expediente());
+  d.pages = pages;
+  return d;
+}
+
+async function importMarkdown(file) {
+  let md = '', getImg = async () => '';
+  if (/\.zip$/i.test(file.name) || /zip/.test(file.type)) {
+    await loadScript(LIBS.jszip);
+    const zip = await window.JSZip.loadAsync(file);
+    const ent = Object.values(zip.files).filter(f => !f.dir && /\.(md|markdown)$/i.test(f.name) && !/(^|\/)(__MACOSX|\.)/.test(f.name))
+      .sort((a, b) => a.name.split('/').length - b.name.split('/').length)[0];
+    if (!ent) throw new Error('nomd');
+    md = await ent.async('string');
+    const base = ent.name.includes('/') ? ent.name.slice(0, ent.name.lastIndexOf('/') + 1) : '';
+    getImg = async p => {
+      let q = p; try { q = decodeURI(p); } catch { /* */ }
+      q = q.replace(/^\.\//, '');
+      const f = zip.file(base + q) || zip.file(q); if (!f) return '';
+      return blobToDataURL(new Blob([await f.async('uint8array')], { type: MIME[q.split('.').pop().toLowerCase()] || 'image/jpeg' }));
+    };
+  } else md = await file.text();
+  const tag = /<!--\s*reportlab:([A-Za-z0-9+/=\s]+?)\s*-->/.exec(md);
+  let o = null, exact = false;
+  if (tag) { try { o = JSON.parse(decodeURIComponent(escape(atob(tag[1].replace(/\s/g, ''))))); exact = true; } catch { o = null; } }
+  if (!o) o = mdToDoc(md);
+  let miss = 0;
+  const walk = async x => {
+    if (Array.isArray(x)) { for (const y of x) await walk(y); return; }
+    if (!x || typeof x !== 'object') return;
+    for (const k of Object.keys(x)) {
+      if (k === 'src' && typeof x[k] === 'string' && x[k] && !x[k].startsWith('data:')) { x[k] = await getImg(x[k]); if (!x[k]) miss++; }
+      else await walk(x[k]);
+    }
+  };
+  await walk(o);
+  o = upgrade(o); if (!o) throw new Error('formato');
+  return { o, miss, exact };
+}
+$('#mdImport').addEventListener('click', () => $('#mdFile').click());
+$('#mdFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (!confirm(`Importar “${f.name}”? O documento atual será substituído.`)) return;
+  busy(true); setStatus('Importando Markdown…');
+  try {
+    const { o, miss, exact } = await importMarkdown(f);
+    await persist(); state = o; commit(); stage.scrollTo({ top: 0 });
+    setStatus((exact ? 'Documento importado.' : 'Markdown importado; confira os layouts escolhidos para cada página.') + (miss ? ` ${miss} imagem(ns) não encontrada(s)${/\.zip$/i.test(f.name) ? '' : ': importe o .zip com a pasta imagens/'}.` : ''));
+  } catch (err) {
+    console.error(err);
+    setStatus(err.message === 'nomd' ? 'O .zip não contém um arquivo .md.' : err.message === 'vazio' ? 'O arquivo não tem conteúdo reconhecível.' : 'Não foi possível importar o arquivo.');
+  } finally { busy(false); }
+});
 $('#mdExport').addEventListener('click', async () => {
   busy(true);
   try {
