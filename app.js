@@ -813,6 +813,7 @@ const busy = on => exportBtns.forEach(b => { b.disabled = on; });
 $('#pdfPrint').addEventListener('click', async () => {
   document.activeElement?.blur?.();
   await persist(); await document.fonts.ready;
+  closeColorPop();
   window.print();
 });
 
