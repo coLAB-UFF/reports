@@ -914,7 +914,7 @@ function toMarkdown() {
     const f = `imagens/${name}.${ext(im.src)}`; files.push([f, im.src]); return `![${alt}](${f})`;
   };
   const figMd = (im, cap) => { fig++; return `${imgRef(im, 'fig-' + pad(fig), 'Fig. ' + fig)}\n\n*Fig. ${fig}. ${cap}*`; };
-  const cell = s => String(s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  const cell = s => String(s).replace(/\|/g, '\\|').replace(/\n/g, '<br>');
   let tab = 0;
   const tabMd = t => {
     tab++;
@@ -970,6 +970,7 @@ function toMarkdown() {
       case 'tres':
         out.push(h, `### ${p.title}`, p.lede, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
         break;
+      case 'duas45':
       case 'quatro':
       case 'oito':
         out.push(h, `### ${p.title}`, p.intro, ...p.figs.map(f => figMd(f.img, f.cap)), p.body);
@@ -1005,59 +1006,161 @@ function toMarkdown() {
 const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
 const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); });
 
-/* Markdown sem os dados do app: reconstrói páginas a partir de títulos, parágrafos e figuras */
-function mdToDoc(md) {
-  const d = defaultDoc(), pages = [];
-  const clean = s => s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/ {2}\n/g, '\n').trim();
-  const fill = (type, sec, title, paras, figs) => {
-    const p = NEW[type]();
-    if ('sec' in p) p.sec = sec || p.sec;
-    p.title = title || '';
-    if ('lede' in p) p.lede = paras.shift() || '';
-    if ('intro' in p) p.intro = paras.shift() || '';
-    if ('body' in p) p.body = paras.join('\n\n');
-    if (p.fig) p.fig = figs[0] || { img: img(), cap: '' };
-    if (p.figs) p.figs = p.figs.map((f, j) => figs[j] || { img: img(), cap: '' });
-    return p;
-  };
-  md.replace(/<!--[\s\S]*?-->/g, '').split(/\n-{3,}[ \t]*\n/).forEach(ch => {
-    const blocks = ch.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
-    let h1 = '', sec = '', title = '', mm; const paras = [], figs = [];
-    for (let j = 0; j < blocks.length; j++) {
-      const b = blocks[j];
-      if ((mm = /^#\s+(.+)/.exec(b))) h1 = mm[1].trim();
-      else if ((mm = /^##\s+(?:\d+\s*·\s*)?(.+)/.exec(b))) sec = mm[1].trim();
-      else if ((mm = /^#{3,6}\s+(.+)/.exec(b))) title = mm[1].trim();
-      else if ((mm = /^!\[[^\]]*\]\(<?([^)\s>]+)>?[^)]*\)$/.exec(b))) {
-        let cap = ''; const nx = blocks[j + 1];
-        if (nx && /^\*[^*][\s\S]*\*$/.test(nx)) { cap = nx.slice(1, -1).replace(/^Fig\.\s*\d+\.\s*/, ''); j++; }
-        figs.push({ img: { src: mm[1], fit: 'cover' }, cap });
-      } else paras.push(clean(b));
+/* lê o Markdown visível: cada página (separada por ---) vira uma lista de blocos tipados */
+function mdTokens(chunk) {
+  const unbr = s => s.replace(/ {2,}\n/g, '\n');
+  const unb = s => s.replace(/\*\*(.+?)\*\*/g, '$1');
+  const T = [];
+  for (const b of chunk.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean)) {
+    let m; const lines = b.split('\n');
+    if ((m = /^#\s+(.+)$/.exec(b))) T.push({ k: 'h1', t: m[1].trim() });
+    else if ((m = /^##\s+(.+)$/.exec(b))) T.push({ k: 'h2', t: m[1].trim() });
+    else if ((m = /^#{3,6}\s+(.+)$/.exec(b))) T.push({ k: 'h3', t: m[1].trim() });
+    else if ((m = /^!\[[^\]]*\]\(<?([^)\s>]+)>?[^)]*\)$/.exec(b))) T.push({ k: 'img', src: m[1] });
+    else if (/^\*\[imagem pendente[^\]]*\]\*$/.test(b)) T.push({ k: 'img', src: '' });
+    else if (lines.every(l => /^\s*\|/.test(l))) T.push({ k: 'table', rows: lines.filter(l => !/^\s*\|(\s*:?-{3,}:?\s*\|)+\s*$/.test(l)).map(l => l.trim().replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|').replace(/<br\s*\/?>/gi, '\n'))) });
+    else if (lines.every(l => /^- /.test(l))) T.push({ k: 'list', items: lines.map(l => l.slice(2).trim()) });
+    else if ((m = /^\*\*([^*\n]+)\*\*$/.exec(b))) T.push({ k: 'label', t: m[1].trim() });
+    else if ((m = /^\*\*Tabela \d+\.\*\*\s*([\s\S]*)$/.exec(b))) T.push({ k: 'tabcap', t: m[1].trim() });
+    else if ((m = /^\*\*([^*\n]+)\*\*[ \t]*\n([\s\S]+)$/.exec(b))) T.push({ k: 'lblock', l: m[1].trim(), t: unbr(m[2]).trim() });
+    else if ((m = /^\*([^*][\s\S]*?)\*$/.exec(b))) T.push({ k: 'it', t: m[1].trim() });
+    else T.push({ k: 'p', t: unbr(b) });
+  }
+  const out = [];
+  for (let i = 0; i < T.length; i++) {
+    const t = T[i];
+    if (t.k === 'img') {
+      const prev = out[out.length - 1];
+      if (prev && prev.k === 'p' && /^\*\*[^*]+\*\*/.test(prev.t)) { t.lab = unb(prev.t); out.pop(); }
+      const nx = T[i + 1];
+      if (nx && nx.k === 'it') { t.cap = nx.t.replace(/^Fig\.\s*\d+\.\s*/, ''); i++; }
     }
-    if (h1) {
-      const c = NEW.capa(); c.title = h1; c.subtitle = '';
-      paras.forEach(t => {
-        if ((mm = /^(.+?) · coLAB — Nº (\S+) · ([^\n]+)/.exec(t))) { d.meta.serie = mm[1]; d.meta.numero = mm[2]; d.meta.data = mm[3].trim(); const doi = /DOI: \[([^\]]+)\]/.exec(t); if (doi) d.meta.doi = doi[1]; }
-        else if (/^Temas:/.test(t)) c.tags = t.replace(/^Temas:\s*/, '').split(/\s*·\s*/).filter(Boolean);
-        else if (!c.subtitle) c.subtitle = t;
+    out.push(t);
+  }
+  return out;
+}
+/* deduz o template de uma página a partir dos blocos (para Markdown sem os dados do app) */
+function inferType(toks) {
+  const has = k => toks.some(t => t.k === k), n = k => toks.filter(t => t.k === k).length;
+  const I = toks.filter(t => t.k === 'img');
+  if (has('h1')) return 'capa';
+  if (has('h2') && !has('h3') && has('lblock')) return 'expediente';
+  if (has('tabcap')) { const i = toks.findIndex(t => t.k === 'tabcap'); return toks.slice(0, i).some(t => t.k === 'p') ? 'tabelaH' : 'tabelaV'; }
+  if (has('table') && I.length) return 'compose';
+  if (n('list') >= 2) return 'episodio';
+  if (n('list') === 1) return has('label') ? 'mapa' : 'figura';
+  if (I.some(t => /^C\d+\s*·/.test(t.lab || ''))) return I.length - 1 <= 4 ? 'clusters4' : 'clusters';
+  if (!I.length) return 'texto';
+  const first = toks.find(t => t.k !== 'h2' && t.k !== 'h3');
+  if (I.length === 1) return first && first.k === 'img' ? 'imagem45' : 'imagem169';
+  if (I.length === 2) return 'duas45';
+  if (I.length === 3) return has('p') ? 'tres' : 'tresL';
+  return I.length === 4 ? 'quatro' : 'oito';
+}
+/* aplica o conteúdo do Markdown sobre uma página (texto, imagens, listas, tabelas), na ordem em que o app exporta */
+function applyMd(p, toks, meta) {
+  const of = k => toks.filter(t => t.k === k);
+  const P = of('p').map(t => t.t), I = of('img'), L = of('list'), LB = of('label'), IT = of('it'), TB = of('table');
+  const h2 = of('h2')[0], h3 = of('h3')[0];
+  if (h2 && 'sec' in p) p.sec = h2.t.replace(/^\d+\s*·\s*/, '');
+  if (h3) p.title = h3.t;
+  const fig = (o, t) => ({ ...o, img: { ...(o.img || img()), src: t.src }, cap: t.cap !== undefined ? t.cap : o.cap });
+  const lede = () => { if ('lede' in p) p.lede = P.length ? P.shift() : ''; };
+  const intro = all => { if ('intro' in p) p.intro = all ? P.splice(0).join('\n\n') : (P.length ? P.shift() : ''); };
+  const body = () => { if ('body' in p) p.body = P.join('\n\n'); };
+  const figs = () => { if (p.figs) p.figs = p.figs.map((f, j) => I[j] ? fig(f, I[j]) : f); else if (p.fig && I[0]) p.fig = fig(p.fig, I[0]); };
+  const pair = (s, re, a, b) => { const m = re.exec(s); return m ? { [a]: m[1], [b]: m[2] } : { [a]: '', [b]: s }; };
+  switch (p.type) {
+    case 'capa': {
+      const h1 = of('h1')[0]; if (h1) p.title = h1.t;
+      let sub = null;
+      P.forEach(t => {
+        let m;
+        if ((m = /^\*\*(.+?) · coLAB\*\* — Nº (\S+) · ([^\n]+)/.exec(t))) {
+          meta.serie = m[1]; meta.numero = m[2]; meta.data = m[3].trim();
+          const d = /DOI: \[([^\]]+)\]/.exec(t); if (d) meta.doi = d[1];
+          const s = /ISBN ([^\s·]+)/.exec(t); if (s) meta.isbn = s[1];
+        } else if (/^Temas:/.test(t)) p.tags = t.replace(/^Temas:\s*/, '').split(/\s*·\s*/).filter(Boolean);
+        else if (sub === null) sub = t;
       });
-      if (figs[0]) { c.img = figs[0].img; d.meta.capaImagem = true; }
-      pages.push(c); return;
+      if (sub !== null) p.subtitle = sub;
+      if (I[0]) { p.img = { ...(p.img || img()), src: I[0].src }; meta.capaImagem = true; }
+      break;
     }
-    if (/^expediente$/i.test(sec)) { const e = d.pages.find(p => p.type === 'expediente'); if (e) pages.push(e); return; }
-    if (!title && !sec && !paras.length && !figs.length) return;
-    if (!figs.length) { pages.push(fill('texto', sec, title, paras, figs)); return; }
-    for (let j = 0; j < figs.length; j += 8) {
-      const g = figs.slice(j, j + 8), ps = j ? [] : paras;
-      const type = g.length === 1 ? 'imagem169' : g.length === 2 ? 'duas45' : g.length === 3 ? 'tres' : g.length === 4 ? 'quatro' : 'oito';
-      pages.push(fill(type, sec, j ? title + ' (cont.)' : title, ps, g));
+    case 'episodio':
+      lede(); body();
+      if (LB[0]) p.statsLabel = LB[0].t;
+      if (LB[1]) p.tlLabel = LB[1].t;
+      if (L[0]) p.stats = L[0].items.map(s => pair(s, /^\*\*(.*?)\*\*\s*(.*)$/, 'v', 'l'));
+      if (L[1]) p.tl = L[1].items.map(s => pair(s, /^\*\*(.*?)\*\*\s*—\s*(.*)$/, 'd', 't'));
+      figs(); break;
+    case 'figura':
+      intro(true); figs();
+      if (L[0]) p.reads = L[0].items.map(s => pair(s, /^\*\*(.*?)\*\*\s*(.*)$/, 'l', 't'));
+      break;
+    case 'mapa': case 'mapaQ':
+      figs();
+      if (LB[0]) p.legLabel = LB[0].t;
+      if (L[0]) p.leg = L[0].items.map((s, j) => { const m = /^(.*?):\s*(.*)$/.exec(s); return { c: PALETTE[j % PALETTE.length], ...(p.leg[j] || {}), l: m ? m[1] : s, v: m ? m[2] : '' }; });
+      body(); break;
+    case 'clusters': case 'clusters4':
+      intro(true);
+      if (I[0]) p.fig = fig(p.fig, I[0]);
+      if (I.length > 1) p.cls = I.slice(1).map((t, j) => {
+        const o = p.cls[j] || { c: PALETTE[j % PALETTE.length], name: '', n: '', img: img() };
+        const m = /^C\d+\s*·\s*(.*?)\s*\((.*)\)\s*$/.exec(t.lab || '');
+        return { ...o, name: m ? m[1] : o.name, n: m ? m[2] : o.n, img: { ...(o.img || img()), src: t.src } };
+      });
+      break;
+    case 'compose':
+      if (I.length) {
+        p.cmps = I.map((t, j) => {
+          const o = p.cmps[j] || { l: letter(j), name: '', n: '', img: img() };
+          const parts = (t.lab || '').split(/\s*·\s*/);
+          return { ...o, l: t.lab ? parts[0] : o.l, name: t.lab ? (parts[1] || '') : o.name, n: t.lab ? parts.slice(2).join(' · ') : o.n, img: { ...(o.img || img()), src: t.src } };
+        });
+        const last = I[I.length - 1]; if (last.cap !== undefined) p.cap = last.cap;
+      }
+      if (LB[0]) p.synLabel = LB[0].t;
+      if (LB[1]) p.methLabel = LB[1].t;
+      if (P[0] !== undefined) p.syn = P[0];
+      if (P[1] !== undefined) p.meth = P[1];
+      if (TB[0] && TB[0].rows.length) { p.th = TB[0].rows[0]; p.rows = TB[0].rows.slice(1); }
+      break;
+    case 'imagem169': case 'imagem45': case 'tres':
+      lede(); body(); figs(); break;
+    case 'duas45': case 'quatro': case 'oito':
+      intro(); body(); figs(); break;
+    case 'tresL':
+      figs(); break;
+    case 'texto':
+      lede(); body(); break;
+    case 'tabelaH': case 'tabelaV': {
+      if (p.type === 'tabelaH') lede();
+      body();
+      const tc = of('tabcap')[0]; if (tc) p.tbl.title = tc.t;
+      if (IT[0]) p.tbl.note = IT[0].t;
+      if (TB[0] && TB[0].rows.length) {
+        const [hd, ...rs] = TB[0].rows, nf = Math.min(p.tbl.foot.length, rs.length);
+        p.tbl.corner = hd[0] || ''; p.tbl.cols = hd.slice(1);
+        const row = r => ({ h: r[0] || '', c: p.tbl.cols.map((_, j) => r[j + 1] || '') });
+        p.tbl.rows = rs.slice(0, rs.length - nf).map(row); p.tbl.foot = rs.slice(rs.length - nf).map(row);
+      }
+      break;
     }
-  });
-  if (!pages.length) throw new Error('vazio');
-  if (pages[0].type !== 'capa') pages.unshift(d.pages.find(p => p.type === 'capa') || NEW.capa());
-  if (!pages.some(p => p.type === 'expediente')) pages.push(d.pages.find(p => p.type === 'expediente') || NEW.expediente());
-  d.pages = pages;
-  return d;
+    case 'expediente': {
+      if (h2) p.title = h2.t;
+      const lb = of('lblock'); let j = 0;
+      if (lb.length) {
+        p.credits = p.credits.map(c => lb[j] ? (({ l, t }) => ({ ...c, r: l, n: t }))(lb[j++]) : c);
+        p.info = p.info.map(x => lb[j] ? (({ l, t }) => ({ ...x, l, t }))(lb[j++]) : x);
+        if (lb[j]) { p.methLabel = lb[j].l; p.meth = lb[j].t; } else p.meth = '';
+      }
+      if (IT.length) p.about = IT[IT.length - 1].t;
+      break;
+    }
+  }
+  return p;
 }
 
 async function importMarkdown(file) {
@@ -1077,10 +1180,24 @@ async function importMarkdown(file) {
       return blobToDataURL(new Blob([await f.async('uint8array')], { type: MIME[q.split('.').pop().toLowerCase()] || 'image/jpeg' }));
     };
   } else md = await file.text();
+  md = md.replace(/\r\n?/g, '\n');
   const tag = /<!--\s*reportlab:([A-Za-z0-9+/=\s]+?)\s*-->/.exec(md);
-  let o = null, exact = false;
-  if (tag) { try { o = JSON.parse(decodeURIComponent(escape(atob(tag[1].replace(/\s/g, ''))))); exact = true; } catch { o = null; } }
-  if (!o) o = mdToDoc(md);
+  let skel = null;
+  if (tag) { try { skel = JSON.parse(decodeURIComponent(escape(atob(tag[1].replace(/\s/g, ''))))); } catch { skel = null; } }
+  const chunks = md.replace(/<!--[\s\S]*?-->/g, '').split(/\n-{3,}[ \t]*\n/).map(mdTokens).filter(t => t.length);
+  if (!chunks.length) throw new Error('vazio');
+  let o, exact = false;
+  if (skel && Array.isArray(skel.pages) && skel.pages.length === chunks.length) {
+    /* layout, cores e estrutura vêm dos dados do app; textos e imagens vêm do Markdown visível (inclusive se editado) */
+    o = skel; exact = true;
+    o.pages.forEach((p, i) => applyMd(p, chunks[i], o.meta));
+  } else {
+    o = defaultDoc();
+    if (skel && skel.meta) o.meta = skel.meta;
+    o.pages = chunks.map(c => { const t = inferType(c), p = NEW[t](); if (t === 'capa') p.tags = []; return applyMd(p, c, o.meta); });
+    if (o.pages[0].type !== 'capa') o.pages.unshift(NEW.capa());
+    if (!o.pages.some(p => p.type === 'expediente')) o.pages.push(NEW.expediente());
+  }
   let miss = 0;
   const walk = async x => {
     if (Array.isArray(x)) { for (const y of x) await walk(y); return; }
