@@ -19,6 +19,15 @@ const TYPES = {
   tresL: 'Texto + 3 imagens (largura total)',
   quatro: 'Texto + 4 imagens',
   oito: 'Texto + 8 imagens',
+  g21: 'Gráfico 2:1 + texto',
+  g21x2: 'Dois gráficos 2:1',
+  g156: 'Gráfico 1,56:1 + texto',
+  g145: 'Gráfico 1,45:1 + texto',
+  g130: 'Gráfico 1,30:1 + texto',
+  g114: 'Gráfico 1,14:1 + texto',
+  g107: 'Gráfico 1,07:1 + texto',
+  g091: 'Gráfico 0,91:1 + texto',
+  g076: 'Gráfico vertical 0,76:1 + texto',
   tabelaH: 'Texto + tabela horizontal',
   tabelaV: 'Texto + tabela vertical',
   texto: 'Texto corrido',
@@ -34,6 +43,54 @@ const L2 = 'Duis sagittis ipsum. Praesent mauris fusce nec tellus sed augue semp
 
 const img = (fit = 'cover') => ({ src: '', fit });
 const letter = n => String.fromCharCode(65 + (n % 26));
+
+/* gráficos em proporção exata: [proporção, texto do espaço vazio] */
+const GR = {
+  g21: ['3060/1530', 'Gráfico 2:1 (3060 × 1530)'],
+  g156: ['4320/2775', 'Gráfico 1,56:1 (4320 × 2775)'],
+  g145: ['3360/2310', 'Gráfico 1,45:1 (3360 × 2310)'],
+  g130: ['13/10', 'Gráfico 1,30:1 (3060 × 2355 ou 5200 × 3990)'],
+  g114: ['3060/2685', 'Gráfico 1,14:1 (3060 × 2685)'],
+  g107: ['3060/2850', 'Gráfico 1,07:1 (3060 × 2850)'],
+  g091: ['3060/3358', 'Gráfico 0,91:1 (3060 × 3358)'],
+  g076: ['3360/4410', 'Gráfico vertical 0,76:1 (3360 × 4410)']
+};
+const gNew = (type, sec, long = true) => () => ({ type, sec, title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
+  lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
+  fig: { img: img('contain'), cap: 'Lorem ipsum dolor sit amet. Fonte: coLAB/UFF.' }, body: long ? L1 + '\n\n' + L2 : L1 });
+const FIT = (k, r, ph) => `<figure class="fig-fit" style="--r:${r}"><div class="arbox"><div class="ar">${S(k + '.img', ph)}</div></div>${CAP(k + '.cap')}</figure>`;
+function gPage(p, i, k) {
+  const [r, ph] = GR[p.type];
+  const head = KICK(i, k) + T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' });
+  const lede = T(k + '.lede', { tag: 'p', cls: 'lede', ph: 'Parágrafo de abertura' });
+  const mid = p.type === 'g076'
+    ? `<div class="gside">${FIT(k + '.fig', r, ph)}<div class="split-txt">${lede}${T(k + '.body', { cls: 'small', ph: 'Texto' })}</div></div>`
+    : FIT(k + '.fig', r, ph) + lede + T(k + '.body', { cls: 'body cols', ph: 'Texto' });
+  return `<div class="inner">${RUN()}<div class="main">${head}${mid}</div>${FOOT(i)}</div>`;
+}
+async function hasAlpha(src) {
+  if (!/^data:image\/(png|webp|gif)/.test(src || '')) return false;
+  const im = await loadImg(src), s = Math.min(1, 600 / Math.max(im.naturalWidth, im.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * s)); c.height = Math.max(1, Math.round(im.naturalHeight * s));
+  const g = c.getContext('2d'); g.drawImage(im, 0, 0, c.width, c.height);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
+  return false;
+}
+async function flattenWhite(src) {
+  const im = await loadImg(src), c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0);
+  return c.toDataURL('image/png');
+}
+/* marca imagens com transparência (inclusive as colocadas antes desta versão) */
+async function scanAlpha() {
+  const list = [];
+  const walk = x => { if (Array.isArray(x)) return x.forEach(walk); if (!x || typeof x !== 'object') return; if (typeof x.src === 'string' && x.src && x.alpha === undefined) list.push(x); Object.values(x).forEach(walk); };
+  walk(state.pages);
+  let ch = false;
+  for (const im of list) { try { im.alpha = await hasAlpha(im.src); } catch { im.alpha = false; } if (im.alpha) ch = true; }
+  if (ch) commit(); else if (list.length) save();
+}
 
 const NEW = {
   capa: () => ({ type: 'capa', tags: ['Desinformação', 'Humor político', 'Extremismo online'],
@@ -99,6 +156,17 @@ const NEW = {
     intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
     figs: ['A', 'B', 'C', 'D'].map(l => ({ img: img(), cap: l + ' · Lorem ipsum dolor sit amet.' })),
     body: [L1, L2, L1].join('\n\n') }),
+  g21: gNew('g21', 'Distribuição'),
+  g21x2: () => ({ type: 'g21x2', sec: 'Distribuição', title: 'Lorem ipsum dolor sit amet consectetur',
+    intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet.',
+    figs: [0, 1].map(() => ({ img: img('contain'), cap: 'Lorem ipsum dolor sit amet. Fonte: coLAB/UFF.' })) }),
+  g156: gNew('g156', 'Nuvem de palavras'),
+  g145: gNew('g145', 'Nuvem de palavras'),
+  g130: gNew('g130', 'Imagens por cluster'),
+  g114: gNew('g114', 'Rótulos detectados'),
+  g107: gNew('g107', 'Análise de sentimentos', false),
+  g091: gNew('g091', 'Detecção de comunidades', false),
+  g076: gNew('g076', 'Clusters hierárquicos'),
   tabelaH: () => ({ type: 'tabelaH', sec: 'Tabela de contingência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
     lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
     tbl: { title: 'Distribuição das imagens por cluster visual e plataforma', corner: 'Cluster',
@@ -258,11 +326,11 @@ function S(path, ph, o = {}) {
   const im = get(path) || {};
   const has = !!im.src;
   const fit = im.fit === 'contain' ? 'contain' : 'cover';
-  const bg = has && !o.tint ? `background-image:url('${urlFor(im.src)}');background-size:${fit};` : '';
+  const bg = has && !o.tint ? `background-image:url('${urlFor(im.src)}');background-size:${fit};${im.bg ? 'background-color:#fff;' : ''}` : '';
   const ctl = has
-    ? `<button data-act="pick">Trocar</button>${o.tint ? '' : `<button data-act="fit">${fit === 'contain' ? 'Preencher' : 'Ajustar'}</button>`}<button data-act="rmimg">Remover</button>`
+    ? `<button data-act="pick">Trocar</button>${o.tint ? '' : `<button data-act="fit">${fit === 'contain' ? 'Preencher' : 'Ajustar'}</button>`}${im.alpha && !o.tint ? `<button data-act="bg" title="A imagem tem fundo transparente">${im.bg ? 'Sem fundo' : 'Fundo branco'}</button>` : ''}<button data-act="rmimg">Remover</button>`
     : `<button data-act="pick">Escolher imagem</button>`;
-  return `<div class="slot ${has ? 'has' : ''}" data-img="${path}"${o.tint && has ? ' data-tint="1"' : ''}${bg ? ` style="${bg}"` : ''}>${has ? '' : `<span class="slot-ph">${E(ph)}</span>`}<div class="ctl ui">${ctl}</div></div>`;
+  return `<div class="slot ${has ? 'has' : ''}" data-img="${path}"${o.tint && has ? ' data-tint="1"' : ''}${im.bg && has && !o.tint ? ' data-bg="1"' : ''}${bg ? ` style="${bg}"` : ''}>${has ? '' : `<span class="slot-ph">${E(ph)}</span>`}<div class="ctl ui">${ctl}</div></div>`;
 }
 const hex2rgb = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
 const rgb2hex = (r, g, b) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, +v || 0)).toString(16).padStart(2, '0')).join('');
@@ -383,9 +451,9 @@ const R = {
       <div class="blk">${T(k + '.synLabel', { cls: 'lbl', single: true })}${T(k + '.syn', { tag: 'p', cls: 'syn', ph: 'Síntese' })}</div>
       <div class="two b">
         <div class="blk">${T(k + '.methLabel', { cls: 'lbl', single: true })}${T(k + '.meth', { tag: 'p', cls: 'small2', ph: 'Nota metodológica' })}</div>
-        <div class="tblw"><table class="tbl"><thead><tr>${p.th.map((h, j) => `<th>${T(`${k}.th.${j}`, { tag: 'span', single: true, ph: 'Coluna' })}</th>`).join('')}<th class="rowx ui"></th></tr></thead>
-          <tbody>${p.rows.map((r, j) => `<tr>${r.map((c, m) => `<td>${T(`${k}.rows.${j}.${m}`, { tag: 'span', single: true, ph: '—' })}</td>`).join('')}<td class="rowx ui"><button class="x" data-act="del" data-list="${k}.rows" data-j="${j}" title="Remover linha" aria-label="Remover linha">×</button></td></tr>`).join('')}</tbody></table>
-          <button class="add ui" data-act="add" data-list="${k}.rows" data-tpl="row">+ Linha</button></div>
+        <div class="tblw stbl"><table class="tbl"><thead><tr>${p.th.map((h, j) => `<th><span class="colh">${T(`${k}.th.${j}`, { tag: 'span', single: true, ph: 'Coluna' })}<button class="x colx ui" data-act="scol-del" data-k2="${k}" data-j="${j}" title="Remover coluna" aria-label="Remover coluna">×</button></span></th>`).join('')}<th class="rowx ui"></th></tr></thead>
+          <tbody>${p.rows.map((r, j) => `<tr>${p.th.map((_, m) => `<td>${T(`${k}.rows.${j}.${m}`, { tag: 'span', single: true, ph: '—' })}</td>`).join('')}<td class="rowx ui"><button class="x" data-act="del" data-list="${k}.rows" data-j="${j}" title="Remover linha" aria-label="Remover linha">×</button></td></tr>`).join('')}</tbody></table>
+          <div class="dtab-ctl ui"><button data-act="add" data-list="${k}.rows" data-tpl="row">+ Linha</button><button data-act="scol-add" data-k2="${k}">+ Coluna</button></div></div>
       </div>
     </div>${FOOT(i)}</div>`,
 
@@ -436,6 +504,9 @@ const R = {
       <div class="quad">${p.figs.map((f, j) => `<figure class="fig-ar"><div class="ar r11">${S(`${k}.figs.${j}.img`, 'Imagem quadrada (1:1)')}</div>${CAP(`${k}.figs.${j}.cap`)}</figure>`).join('')}</div>
       ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
     </div>${FOOT(i)}</div>`,
+
+  g21: gPage, g156: gPage, g145: gPage, g130: gPage, g114: gPage, g107: gPage, g091: gPage, g076: gPage,
+  g21x2: (p, i, k) => `<div class="inner">${RUN()}<div class="main">${KICK(i, k)}<div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>${p.figs.map((f, j) => FIT(`${k}.figs.${j}`, '3060/1530', 'Gráfico 2:1 (3060 × 1530)')).join('')}</div>${FOOT(i)}</div>`,
 
   tabelaH: (p, i, k) => `<div class="inner">${RUN()}
     <div class="main fitmain">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}${T(k + '.lede', { tag: 'p', cls: 'lede fz', ph: 'Parágrafo de abertura' })}
@@ -658,7 +729,12 @@ async function importFile(file) {
 async function setImage(k, file) {
   if (!file || !file.type.startsWith('image/')) { setStatus('Arquivo não reconhecido como imagem.'); return; }
   setStatus('Importando imagem…');
-  try { const d = await importFile(file); const im = get(k); im.src = d; commit(); }
+  try {
+    const d = await importFile(file); const im = get(k); im.src = d; im.bg = false;
+    try { im.alpha = await hasAlpha(d); } catch { im.alpha = false; }
+    commit();
+    if (im.alpha) setStatus('Imagem com fundo transparente. Passe o mouse sobre ela e use “Fundo branco” para aplicar um fundo branco.');
+  }
   catch { setStatus('Não foi possível abrir esta imagem.'); }
 }
 const fileInput = $('#file');
@@ -705,6 +781,9 @@ doc.addEventListener('click', e => {
       if (t.cols.length <= 1) { setStatus('A tabela precisa de ao menos uma coluna.'); return; }
       const j = +b.dataset.j; t.cols.splice(j, 1); [...t.rows, ...t.foot].forEach(r => r.c.splice(j, 1)); commit(); return;
     }
+    if (act === 'scol-add') { const p = get(b.dataset.k2); p.th.push('Coluna'); p.rows.forEach(r => { while (r.length < p.th.length - 1) r.push(''); r.push('—'); }); commit(); return; }
+    if (act === 'scol-del') { const p = get(b.dataset.k2); if (p.th.length <= 1) { setStatus('A tabela precisa de ao menos uma coluna.'); return; } const j = +b.dataset.j; p.th.splice(j, 1); p.rows.forEach(r => r.splice(j, 1)); commit(); return; }
+    if (act === 'add' && b.dataset.tpl === 'row') { const th = get(b.dataset.list.replace(/\.rows$/, '.th')); if (Array.isArray(th)) { get(b.dataset.list).push(Array(th.length).fill('—')); commit(); return; } }
     if (act === 'add') { const arr = get(b.dataset.list); arr.push(ITEM[b.dataset.tpl](arr)); commit(); return; }
     if (act === 'del') { get(b.dataset.list).splice(+b.dataset.j, 1); commit(); return; }
     if (act === 'hideisbn') { state.meta.showIsbn = false; commit(); return; }
@@ -713,7 +792,8 @@ doc.addEventListener('click', e => {
     const k = slot.dataset.img, im = get(k);
     if (act === 'pick') pickImage(k);
     if (act === 'fit') { im.fit = im.fit === 'contain' ? 'cover' : 'contain'; commit(); }
-    if (act === 'rmimg') { im.src = ''; commit(); }
+    if (act === 'bg') { im.bg = !im.bg; commit(); }
+    if (act === 'rmimg') { im.src = ''; im.alpha = undefined; im.bg = false; commit(); }
     return;
   }
   const s = e.target.closest('.slot:not(.has)');
@@ -859,6 +939,10 @@ async function hiresLayer(page, pdf, cv) {
     const src = el.dataset.src; if (!src) continue;
     let im; try { im = await loadImg(src); } catch { continue; }
     const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    if (el.dataset.bg) {
+      const a = Math.max(r.left, pr.left), b = Math.max(r.top, pr.top), c2 = Math.min(r.right, pr.right), d2 = Math.min(r.bottom, pr.bottom);
+      if (c2 > a && d2 > b) { pdf.setFillColor(255, 255, 255); pdf.rect((a - pr.left) * f, (b - pr.top) * f, (c2 - a) * f, (d2 - b) * f, 'F'); }
+    }
     const iw = im.naturalWidth, ih = im.naturalHeight, contain = el.dataset.fit === 'contain';
     let x = r.left, y = r.top, w = r.width, h = r.height, sx = 0, sy = 0, sw = iw, sh = ih;
     if (contain) { const s = Math.min(w / iw, h / ih); x += (w - iw * s) / 2; y += (h - ih * s) / 2; w = iw * s; h = ih * s; }
@@ -897,7 +981,9 @@ async function bakeSlots(scale) {
       const contain = el.style.backgroundSize === 'contain';
       const s = contain ? Math.min(w / im.naturalWidth, h / im.naturalHeight) : Math.max(w / im.naturalWidth, h / im.naturalHeight);
       const dw = im.naturalWidth * s, dh = im.naturalHeight * s;
-      c.getContext('2d').drawImage(im, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      const g2 = c.getContext('2d');
+      if (el.dataset.bg) { g2.fillStyle = '#fff'; g2.fillRect(0, 0, w, h); }
+      g2.drawImage(im, (w - dw) / 2, (h - dh) / 2, dw, dh);
       el.style.backgroundImage = `url('${c.toDataURL(contain ? 'image/png' : 'image/jpeg', 0.92)}')`;
       el.style.backgroundSize = '100% 100%';
     } catch { /* mantém a imagem original */ }
@@ -957,6 +1043,12 @@ function toMarkdown() {
           p.cmps.map((c, j) => `**${c.l}** · ${c.name} · ${c.n}\n\n${imgRef(c.img, `fig-${pad(fig)}-${j + 1}`, `Fig. ${fig} ${c.l}`)}`).join('\n\n'),
           `*Fig. ${fig}. ${p.cap}*`, `**${p.synLabel}**\n\n${p.syn}`, `**${p.methLabel}**\n\n${p.meth}`,
           `| ${p.th.map(cell).join(' | ')} |\n| ${p.th.map(() => '---').join(' | ')} |\n` + p.rows.map(r => `| ${r.map(cell).join(' | ')} |`).join('\n'));
+        break;
+      case 'g21': case 'g156': case 'g145': case 'g130': case 'g114': case 'g107': case 'g091': case 'g076':
+        out.push(h, `### ${p.title}`, p.lede, figMd(p.fig.img, p.fig.cap), p.body);
+        break;
+      case 'g21x2':
+        out.push(h, `### ${p.title}`, p.intro, ...p.figs.map(f => figMd(f.img, f.cap)));
         break;
       case 'imagem169':
         out.push(h, `### ${p.title}`, p.lede, figMd(p.fig.img, p.fig.cap), p.body);
@@ -1128,8 +1220,9 @@ function applyMd(p, toks, meta) {
       if (TB[0] && TB[0].rows.length) { p.th = TB[0].rows[0]; p.rows = TB[0].rows.slice(1); }
       break;
     case 'imagem169': case 'imagem45': case 'tres':
+    case 'g21': case 'g156': case 'g145': case 'g130': case 'g114': case 'g107': case 'g091': case 'g076':
       lede(); body(); figs(); break;
-    case 'duas45': case 'quatro': case 'oito':
+    case 'duas45': case 'quatro': case 'oito': case 'g21x2':
       intro(); body(); figs(); break;
     case 'tresL':
       figs(); break;
@@ -1218,7 +1311,7 @@ $('#mdFile').addEventListener('change', async e => {
   busy(true); setStatus('Importando Markdown…');
   try {
     const { o, miss, exact } = await importMarkdown(f);
-    await persist(); state = o; commit(); stage.scrollTo({ top: 0 });
+    await persist(); state = o; commit(); stage.scrollTo({ top: 0 }); scanAlpha();
     setStatus((exact ? 'Documento importado.' : 'Markdown importado; confira os layouts escolhidos para cada página.') + (miss ? ` ${miss} imagem(ns) não encontrada(s)${/\.zip$/i.test(f.name) ? '' : ': importe o .zip com a pasta imagens/'}.` : ''));
   } catch (err) {
     console.error(err);
@@ -1229,6 +1322,9 @@ $('#mdExport').addEventListener('click', async () => {
   busy(true);
   try {
     const { md, files } = toMarkdown();
+    const bgSrc = new Set();
+    (function w(x) { if (Array.isArray(x)) return x.forEach(w); if (!x || typeof x !== 'object') return; if (x.bg && x.src) bgSrc.add(x.src); Object.values(x).forEach(w); })(state.pages);
+    for (const fl of files) if (bgSrc.has(fl[1])) { try { fl[1] = await flattenWhite(fl[1]); } catch { /* mantém original */ } }
     if (!files.length) { download(new Blob([md], { type: 'text/markdown;charset=utf-8' }), fname() + '.md'); setStatus('Markdown exportado.'); return; }
     setStatus('Compactando Markdown e imagens…');
     await loadScript(LIBS.jszip);
@@ -1271,6 +1367,7 @@ async function start(key) {
   let z = null; try { z = +localStorage.getItem('reportlab-zoom'); } catch { /* */ }
   gate.hidden = true; document.body.classList.remove('locked');
   render();
+  setTimeout(scanAlpha, 400);
   if (z) setZoom(z); else fitZoom();
   document.fonts?.ready.then(checkOverflow);
   await persist();
