@@ -5,34 +5,29 @@ const PALETTE = ['#0088b0', '#d6006c', '#edbb00', '#004961', '#ffc0d0', '#9b9797
 const ED_COLORS = [['#d6006c', 'Magenta'], ['#0088b0', 'Ciano'], ['#edbb00', 'Amarelo'], ['#201e1d', 'Preto']];
 const TYPES = {
   capa: 'Capa',
-  episodio: 'Episódio (texto + imagem-chave)',
-  figura: 'Figura larga',
-  mapa: 'Figura + legenda',
-  clusters: 'Múltiplas figuras',
+  episodio: 'Episódio (Texto + Sumário)',
+  figura: 'Figura + 3 Chamadas',
+  mapa: 'Figura + Legenda Externa',
+  clusters: 'Imagem + 6 Thumbs',
   clusters4: 'Múltiplas figuras (4)',
-  mapaQ: 'Figura quadrada + legenda',
-  compose: 'Síntese',
+  compose: 'Síntese + 3 Imagens + Tabela',
   imagem169: 'Texto + imagem 16:9',
   imagem45: 'Texto + imagem 4:5',
-  duas45: 'Texto + duas imagens 4:5',
-  tres: 'Texto + 3 imagens',
-  tresL: 'Texto + 3 imagens (largura total)',
-  quatro: 'Texto + 4 imagens',
-  oito: 'Texto + 8 imagens',
-  g21: 'Gráfico 2:1 + texto',
+  duas45: 'Texto + 2 Imagens Lado a Lado',
+  tres: 'Texto + 3 Imagens Empilhadas',
+  tresL: '3 Imagens Empilhadas',
+  quatro: '4 Thumbs',
+  oito: '8 Thumbs',
+  grafico: 'Gráfico + Texto',
   g21x2: 'Dois gráficos 2:1',
-  g156: 'Gráfico 1,56:1 + texto',
-  g145: 'Gráfico 1,45:1 + texto',
-  g130: 'Gráfico 1,30:1 + texto',
-  g114: 'Gráfico 1,14:1 + texto',
-  g107: 'Gráfico 1,07:1 + texto',
-  g091: 'Gráfico 0,91:1 + texto',
   g076: 'Gráfico vertical 0,76:1 + texto',
-  tabelaH: 'Texto + tabela horizontal',
-  tabelaV: 'Texto + tabela vertical',
-  texto: 'Texto corrido',
+  tabelaH: 'Texto + Tabela Horizontal',
+  tabelaV: 'Texto + Tabela Vertical',
+  texto: 'Texto Simples',
   expediente: 'Expediente'
 };
+/* tipos de versões anteriores, unificados: continuam sendo lidos e são convertidos em upgrade() */
+const LEGACY = { mapaQ: 'mapa', g21: 'grafico', g156: 'grafico', g145: 'grafico', g130: 'grafico', g114: 'grafico', g107: 'grafico', g091: 'grafico' };
 const LIBS = {
   h2c: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
   jspdf: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
@@ -59,11 +54,18 @@ const gNew = (type, sec, long = true) => () => ({ type, sec, title: 'Lorem ipsum
   lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
   fig: { img: img('contain'), cap: 'Lorem ipsum dolor sit amet. Fonte: coLAB/UFF.' }, body: long ? L1 + '\n\n' + L2 : L1 });
 const FIT = (k, r, ph) => `<figure class="fig-fit" style="--r:${r}"><div class="arbox"><div class="ar">${S(k + '.img', ph)}</div></div>${CAP(k + '.cap')}</figure>`;
+/* proporção do slot: a da imagem colocada (img.ar) ou, em páginas vindas de versões anteriores, a do template original (p.ar) */
+const arOf = (p, im) => (im && im.src && im.ar) || p.ar || '';
+const arNum = r => { const [a, b] = String(r).split('/').map(Number); return a > 0 && b > 0 ? a / b : (a > 0 && !b ? a : 0); };
+const G_PH = 'Gráfico em qualquer proporção (2:1, 1,56:1, 1,45:1, 1,30:1, 1,14:1, 1,07:1, 0,91:1…): o espaço se ajusta à imagem';
 function gPage(p, i, k) {
-  const [r, ph] = GR[p.type];
+  let r, ph;
+  if (p.type === 'grafico') { r = arOf(p, p.fig.img) || GR.g21[0]; ph = G_PH; }
+  else [r, ph] = GR[p.type];
+  const side = p.type === 'g076' || (p.type === 'grafico' && arNum(r) < 0.85);
   const head = KICK(i, k) + T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' });
   const lede = T(k + '.lede', { tag: 'p', cls: 'lede', ph: 'Parágrafo de abertura' });
-  const mid = p.type === 'g076'
+  const mid = side
     ? `<div class="gside">${FIT(k + '.fig', r, ph)}<div class="split-txt">${lede}${T(k + '.body', { cls: 'small', ph: 'Texto' })}</div></div>`
     : FIT(k + '.fig', r, ph) + lede + T(k + '.body', { cls: 'body cols', ph: 'Texto' });
   return `<div class="inner">${RUN()}<div class="main">${head}${mid}</div>${FOOT(i)}</div>`;
@@ -122,10 +124,6 @@ const NEW = {
     intro: 'Curabitur sodales ligula in libero. Sed dignissim lacinia nunc, curabitur tortor pellentesque nibh aenean quam.',
     fig: { img: img('contain'), cap: 'Dendrograma (método de ligação lorem ipsum). O corte em k = 4 define os grupos abaixo.' },
     cls: ['Lorem ipsum', 'Dolor sit', 'Amet', 'Adipiscing'].map((name, j) => ({ c: PALETTE[j], name, n: 'n = 000', img: img() })) }),
-  mapaQ: () => ({ type: 'mapaQ', sec: 'Embeddings', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing', legLabel: 'Agrupamentos',
-    fig: { img: img('contain'), cap: 'Projeção UMAP de embeddings visuais (modelo) de 0.000 imagens. Proximidade indica semelhança visual.' },
-    leg: ['Lorem ipsum', 'Dolor sit', 'Amet consectetur', 'Adipiscing', 'Elit sed', 'Outros'].map((l, j) => ({ c: PALETTE[j], l, v: '00%' })),
-    body: L1 + '\n\n' + L2 }),
   compose: () => ({ type: 'compose', sec: 'Compose e síntese', title: 'Lorem ipsum dolor sit amet',
     cmps: [['A', 'Lorem ipsum'], ['B', 'Dolor sit'], ['C', 'Amet elit']].map(([l, name]) => ({ l, name, n: 'n = 000', img: img() })),
     cap: 'Compose: sobreposição de todas as imagens de cada grupo, alinhadas e com opacidade igual.',
@@ -156,16 +154,10 @@ const NEW = {
     intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet, duis sagittis ipsum praesent mauris.',
     figs: ['A', 'B', 'C', 'D'].map(l => ({ img: img(), cap: l + ' · Lorem ipsum dolor sit amet.' })),
     body: [L1, L2, L1].join('\n\n') }),
-  g21: gNew('g21', 'Distribuição'),
+  grafico: gNew('grafico', 'Distribuição'),
   g21x2: () => ({ type: 'g21x2', sec: 'Distribuição', title: 'Lorem ipsum dolor sit amet consectetur',
     intro: 'Praesent libero sed cursus ante dapibus diam. Sed nisi nulla quis sem at nibh elementum imperdiet.',
     figs: [0, 1].map(() => ({ img: img('contain'), cap: 'Lorem ipsum dolor sit amet. Fonte: coLAB/UFF.' })) }),
-  g156: gNew('g156', 'Nuvem de palavras'),
-  g145: gNew('g145', 'Nuvem de palavras'),
-  g130: gNew('g130', 'Imagens por cluster'),
-  g114: gNew('g114', 'Rótulos detectados'),
-  g107: gNew('g107', 'Análise de sentimentos', false),
-  g091: gNew('g091', 'Detecção de comunidades', false),
   g076: gNew('g076', 'Clusters hierárquicos'),
   tabelaH: () => ({ type: 'tabelaH', sec: 'Tabela de contingência', title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
     lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
@@ -365,10 +357,18 @@ function openColorPop(dot) {
   setTimeout(() => { document.addEventListener('pointerdown', cpopOutside, true); document.addEventListener('keydown', cpopKey, true); });
 }
 const dotBtn = (k, c) => `<button class="dot" data-act="cycle" data-k2="${k}" style="background:${c}" title="Trocar cor" aria-label="Trocar cor"></button>`;
+/* sumário em minúsculas com inicial maiúscula (“Clusters hierárquicos”), sem alterar o texto salvo.
+   Palavras em caixa alta ou mista dentro de um título em caixa baixa (UMAP, TikTok) são preservadas. */
+function tocCase(s) {
+  s = String(s ?? '').trim();
+  const up = w => w.charAt(0).toLocaleUpperCase('pt-BR') + w.slice(1);
+  if (!/\p{Ll}/u.test(s)) return up(s.toLocaleLowerCase('pt-BR'));
+  return up(s.split(/(\s+)/).map((w, j) => j && /^\p{Lu}[\p{Ll}'’-]*$/u.test(w) ? w.toLocaleLowerCase('pt-BR') : w).join(''));
+}
 function tocHTML() {
-  const rows = state.pages.map((p, i) => SEC[i] ? `<b>${pad(SEC[i])}</b><span>${E(p.sec)}</span>` : '').join('');
+  const rows = state.pages.map((p, i) => SEC[i] ? `<b>${pad(SEC[i])}</b><span>${E(tocCase(p.sec))}</span>` : '').join('');
   const ex = state.pages.find(p => p.type === 'expediente');
-  return rows + (ex ? `<b>—</b><span>${E(ex.title)}</span>` : '');
+  return rows + (ex ? `<b>—</b><span>${E(tocCase(ex.title))}</span>` : '');
 }
 
 /* ——— páginas ——— */
@@ -407,16 +407,23 @@ const R = {
       ${LIST(k + '.reads', p.reads, kk => T(kk + '.l', { cls: 'read-l', single: true, ph: 'A' }) + T(kk + '.t', { ph: 'Leitura' }), { cls: 'reads', tpl: 'read', add: 'Leitura' })}
     </div>${FOOT(i)}</div>`,
 
-  mapa: (p, i, k) => `<div class="inner">${RUN()}
-    <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
-      <div class="map">
-        <figure class="fig">${S(k + '.fig.img', 'Mapa de embeddings (UMAP / t-SNE) com imagens ou pontos coloridos por cluster')}${CAP(k + '.fig.cap')}</figure>
-        <div class="map-side">
+  /* Figura + Legenda Externa: sem imagem, o slot ocupa o espaço livre (como antes); com imagem, a moldura segue a proporção dela */
+  mapa: (p, i, k) => {
+    const r = arOf(p, p.fig.img), ph = 'Figura em qualquer proporção (mapa de embeddings, UMAP / t-SNE etc.): o espaço se ajusta à imagem';
+    const side = `<div class="map-side">
           <div class="blk">${T(k + '.legLabel', { cls: 'lbl', single: true })}${LIST(k + '.leg', p.leg, (kk, it) => dotBtn(kk + '.c', it.c) + T(kk + '.l', { tag: 'span', single: true, ph: 'Grupo' }) + T(kk + '.v', { tag: 'span', cls: 'mut', single: true, ph: '00%' }), { cls: 'legend', tpl: 'leg', add: 'Grupo' })}</div>
           ${T(k + '.body', { cls: 'small', ph: 'Análise' })}
-        </div>
+        </div>`;
+    const fig = r === '1/1' ? `<div class="map map-sq"><figure class="fig-ar"><div class="ar r11">${S(k + '.fig.img', ph)}</div>${CAP(k + '.fig.cap')}</figure>`
+      : r ? `<div class="map map-fit">${FIT(k + '.fig', r, ph)}`
+      : `<div class="map"><figure class="fig">${S(k + '.fig.img', ph)}${CAP(k + '.fig.cap')}</figure>`;
+    return `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
+      ${fig}
+        ${side}
       </div>
-    </div>${FOOT(i)}</div>`,
+    </div>${FOOT(i)}</div>`;
+  },
 
   clusters: (p, i, k) => `<div class="inner">${RUN()}
     <div class="main">${KICK(i, k)}
@@ -430,17 +437,6 @@ const R = {
       <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
       <figure class="fig">${S(k + '.fig.img', 'Dendrograma da clusterização hierárquica, com corte indicado')}${CAP(k + '.fig.cap')}</figure>
       ${LIST(k + '.cls', p.cls, (kk, it, j) => `<div class="cl-img">${S(kk + '.img', 'Exemplares C' + (j + 1))}</div><div class="cl-meta">${dotBtn(kk + '.c', it.c)}<b>C${j + 1}</b>${T(kk + '.name', { tag: 'span', single: true, ph: 'Nome' })}${T(kk + '.n', { tag: 'span', cls: 'mut ml', single: true, ph: 'n = 000' })}</div>`, { cls: 'cls cls4', tpl: 'cl', add: 'Cluster' })}
-    </div>${FOOT(i)}</div>`,
-
-  mapaQ: (p, i, k) => `<div class="inner">${RUN()}
-    <div class="main">${KICK(i, k)}${T(k + '.title', { tag: 'h2', cls: 'h2 narrow', ph: 'Título' })}
-      <div class="map map-sq">
-        <figure class="fig-ar"><div class="ar r11">${S(k + '.fig.img', 'Mapa de embeddings quadrado (1:1)')}</div>${CAP(k + '.fig.cap')}</figure>
-        <div class="map-side">
-          <div class="blk">${T(k + '.legLabel', { cls: 'lbl', single: true })}${LIST(k + '.leg', p.leg, (kk, it) => dotBtn(kk + '.c', it.c) + T(kk + '.l', { tag: 'span', single: true, ph: 'Grupo' }) + T(kk + '.v', { tag: 'span', cls: 'mut', single: true, ph: '00%' }), { cls: 'legend', tpl: 'leg', add: 'Grupo' })}</div>
-          ${T(k + '.body', { cls: 'small', ph: 'Análise' })}
-        </div>
-      </div>
     </div>${FOOT(i)}</div>`,
 
   compose: (p, i, k) => `<div class="inner">${RUN()}
@@ -505,7 +501,7 @@ const R = {
       ${T(k + '.body', { cls: 'body cols', ph: 'Texto' })}
     </div>${FOOT(i)}</div>`,
 
-  g21: gPage, g156: gPage, g145: gPage, g130: gPage, g114: gPage, g107: gPage, g091: gPage, g076: gPage,
+  grafico: gPage, g076: gPage,
   g21x2: (p, i, k) => `<div class="inner">${RUN()}<div class="main">${KICK(i, k)}<div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>${p.figs.map((f, j) => FIT(`${k}.figs.${j}`, '3060/1530', 'Gráfico 2:1 (3060 × 1530)')).join('')}</div>${FOOT(i)}</div>`,
 
   tabelaH: (p, i, k) => `<div class="inner">${RUN()}
@@ -559,12 +555,40 @@ function renderPageList() {
     <span class="pl-a"><button class="ib" data-pl="up" title="Mover para cima" aria-label="Mover para cima"><i class="ph-duotone ph-arrow-up"></i></button><button class="ib" data-pl="down" title="Mover para baixo" aria-label="Mover para baixo"><i class="ph-duotone ph-arrow-down"></i></button><button class="ib" data-pl="dup" title="Duplicar" aria-label="Duplicar"><i class="ph-duotone ph-copy"></i></button><button class="ib" data-pl="del" title="Excluir" aria-label="Excluir"><i class="ph-duotone ph-trash"></i></button></span></li>`).join('');
   markActive();
 }
+/* sugestões de cor para a capa: três tons novos a cada abertura do app (e a cada novo documento), longe das cores fixas */
+let SUGG = [];
+function hslHex(h, s, l) {
+  s /= 100; l /= 100;
+  const f = n => { const k = (n + h / 30) % 12, c = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(c * 255).toString(16).padStart(2, '0'); };
+  return '#' + f(0) + f(8) + f(4);
+}
+function hueOf(hex) {
+  const [r, g, b] = hexRgb(hex).map(v => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (!d) return null;
+  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+function suggestColors(n = 3) {
+  const taken = [...ED_COLORS.map(([c]) => c), state.meta.cor || ''].map(c => /^#[0-9a-f]{6}$/i.test(c) ? hueOf(c) : null).filter(h => h !== null);
+  const far = (h, list, d) => list.every(x => Math.min(Math.abs(h - x), 360 - Math.abs(h - x)) >= d);
+  const out = [], hues = [], base = Math.random() * 360;
+  for (let t = 0; out.length < n && t < 400; t++) {
+    const h = (base + t * 137.508) % 360;
+    if (!far(h, taken, 22) || !far(h, hues, 70)) continue;
+    hues.push(h);
+    out.push(hslHex(h, 55 + Math.random() * 30, 30 + Math.random() * 16));
+  }
+  return out;
+}
 function syncPanel() {
   document.querySelectorAll('[data-meta]').forEach(el => { if (el !== document.activeElement) { el.value = state.meta[el.dataset.meta] ?? ''; el.setAttribute('value', el.value); } });
   $('#m-capaImagem').checked = !!state.meta.capaImagem;
   $('#m-showIsbn').checked = !!state.meta.showIsbn;
   const cur = (state.meta.cor || '').toLowerCase();
   $('#swatches').innerHTML = ED_COLORS.map(([c, n]) => `<button class="sw" style="background:${c}" data-color="${c}" aria-pressed="${cur === c}" title="${n}" aria-label="${n}"></button>`).join('')
+    + `<span class="sw-lbl">Sugestões para a capa</span>`
+    + SUGG.map(c => `<button class="sw" style="background:${c}" data-color="${c}" aria-pressed="${cur === c}" title="Sugestão: ${c}" aria-label="Sugestão de cor ${c}"></button>`).join('')
+    + `<button class="sw sw-new" data-act="suggest" title="Sugerir outras cores" aria-label="Sugerir outras cores"><i class="ph-duotone ph-arrows-clockwise"></i></button>`
     + `<label class="sw sw-custom" title="Outra cor" aria-pressed="${!ED_COLORS.some(([c]) => c === cur)}" ${!ED_COLORS.some(([c]) => c === cur) ? `style="background:${cur};color:${edColors().ink}"` : ''}><i class="ph-duotone ph-eyedropper"></i><input type="color" id="customColor" value="${cur || '#d6006c'}" aria-label="Outra cor"></label>`;
 }
 function refreshMeta(f, src) {
@@ -701,7 +725,11 @@ function upgrade(o) {
   if (o.meta.isbn === undefined) o.meta.isbn = '000-00-00000-00-0';
   if (o.meta.showIsbn === undefined) o.meta.showIsbn = true;
   delete o.meta.issn;
-  o.pages.forEach(p => { if (p.type === 'expediente' && p.meth === undefined) { p.methLabel = 'Nota metodológica'; p.meth = ''; } });
+  o.pages.forEach(p => {
+    if (p.type === 'expediente' && p.meth === undefined) { p.methLabel = 'Nota metodológica'; p.meth = ''; }
+    /* templates unificados: a página guarda a proporção do template antigo e mantém o mesmo layout */
+    if (LEGACY[p.type]) { if (p.ar === undefined) p.ar = p.type === 'mapaQ' ? '1/1' : GR[p.type][0]; p.type = LEGACY[p.type]; }
+  });
   return o;
 }
 async function load() {
@@ -715,6 +743,8 @@ async function load() {
 const commit = () => { render(); save(); };
 
 /* ——— imagens ——— */
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+const ratioOf = (w, h) => { const g = gcd(w, h) || 1; return `${w / g}/${h / g}`; };
 const readAsDataURL = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
 async function importFile(file) {
   const url = await readAsDataURL(file);
@@ -731,6 +761,7 @@ async function setImage(k, file) {
   setStatus('Importando imagem…');
   try {
     const d = await importFile(file); const im = get(k); im.src = d; im.bg = false;
+    try { const el = await loadImg(d); im.ar = ratioOf(el.naturalWidth, el.naturalHeight); } catch { delete im.ar; }
     try { im.alpha = await hasAlpha(d); } catch { im.alpha = false; }
     commit();
     if (im.alpha) setStatus('Imagem com fundo transparente. Passe o mouse sobre ela e use “Fundo branco” para aplicar um fundo branco.');
@@ -816,7 +847,10 @@ document.querySelectorAll('[data-meta]').forEach(el => el.addEventListener('inpu
 }));
 $('#m-capaImagem').addEventListener('change', e => { state.meta.capaImagem = e.target.checked; commit(); });
 $('#m-showIsbn').addEventListener('change', e => { state.meta.showIsbn = e.target.checked; commit(); });
-$('#swatches').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (b) { state.meta.cor = b.dataset.color; commit(); } });
+$('#swatches').addEventListener('click', e => {
+  if (e.target.closest('[data-act="suggest"]')) { SUGG = suggestColors(); syncPanel(); return; }
+  const b = e.target.closest('[data-color]'); if (b) { state.meta.cor = b.dataset.color; commit(); }
+});
 $('#swatches').addEventListener('change', e => { if (e.target.id === 'customColor') { state.meta.cor = e.target.value; commit(); } });
 
 $('#newType').innerHTML = Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
@@ -878,7 +912,7 @@ $('#zoomFit').addEventListener('click', fitZoom);
 
 /* restaurar */
 $('#reset').addEventListener('click', () => {
-  if (confirm('Restaurar o modelo original? Todo o conteúdo e as imagens deste documento serão apagados.')) { state = defaultDoc(); commit(); stage.scrollTo({ top: 0 }); }
+  if (confirm('Restaurar o modelo original? Todo o conteúdo e as imagens deste documento serão apagados.')) { state = defaultDoc(); SUGG = suggestColors(); commit(); stage.scrollTo({ top: 0 }); }
 });
 
 /* ——— exportação ——— */
@@ -1044,7 +1078,7 @@ function toMarkdown() {
           `*Fig. ${fig}. ${p.cap}*`, `**${p.synLabel}**\n\n${p.syn}`, `**${p.methLabel}**\n\n${p.meth}`,
           `| ${p.th.map(cell).join(' | ')} |\n| ${p.th.map(() => '---').join(' | ')} |\n` + p.rows.map(r => `| ${r.map(cell).join(' | ')} |`).join('\n'));
         break;
-      case 'g21': case 'g156': case 'g145': case 'g130': case 'g114': case 'g107': case 'g091': case 'g076':
+      case 'grafico': case 'g21': case 'g156': case 'g145': case 'g130': case 'g114': case 'g107': case 'g091': case 'g076':
         out.push(h, `### ${p.title}`, p.lede, figMd(p.fig.img, p.fig.cap), p.body);
         break;
       case 'g21x2':
@@ -1220,7 +1254,7 @@ function applyMd(p, toks, meta) {
       if (TB[0] && TB[0].rows.length) { p.th = TB[0].rows[0]; p.rows = TB[0].rows.slice(1); }
       break;
     case 'imagem169': case 'imagem45': case 'tres':
-    case 'g21': case 'g156': case 'g145': case 'g130': case 'g114': case 'g107': case 'g091': case 'g076':
+    case 'grafico': case 'g21': case 'g156': case 'g145': case 'g130': case 'g114': case 'g107': case 'g091': case 'g076':
       lede(); body(); figs(); break;
     case 'duas45': case 'quatro': case 'oito': case 'g21x2':
       intro(); body(); figs(); break;
@@ -1364,6 +1398,7 @@ function showGate(mode) {
 async function start(key) {
   KEY = key; await keepSession(key);
   state = await load();
+  SUGG = suggestColors();
   let z = null; try { z = +localStorage.getItem('reportlab-zoom'); } catch { /* */ }
   gate.hidden = true; document.body.classList.remove('locked');
   render();
