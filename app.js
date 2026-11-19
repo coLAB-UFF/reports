@@ -990,7 +990,7 @@ $('#pdfApp').addEventListener('click', async () => {
 });
 
 /* ——— mockup da capa para divulgação ———
-   quadro quadrado de 2200 px, capa centralizada com 10% de margem (subindo 1%), sombra suave (desfoque 40, deslocamento 0/28, opacidade 110/255)
+   quadro quadrado de 2000 px (medidas da skill, feitas para 2200 px, em proporção), capa centralizada com 10% de margem (subindo 1%), sombra suave (desfoque 40, deslocamento 0/28, opacidade 110/255)
    e fundo neutro dessaturado que contrasta com a cor da edição; os tons alternam (quentes e frios) e não se repetem em seguida */
 const MOCK_BG = [
   ['Cinza-azulado', '#86949f', 'f'], ['Areia', '#c7baa0', 'q'], ['Sálvia', '#a3b098', 'f'], ['Taupe', '#96877a', 'q'],
@@ -1020,6 +1020,7 @@ function renderMockBg() {
   $('#mockBg').innerHTML = mockSugg.map(c => `<button class="sw" style="background:${c}" data-mbg="${c}" aria-pressed="${c === mockSel}" title="${name(c)}" aria-label="Fundo ${name(c)}"></button>`).join('')
     + `<button class="sw sw-new" data-act="mbg-new" title="Sugerir outros fundos" aria-label="Sugerir outros fundos"><i class="ph-duotone ph-arrows-clockwise"></i></button>`;
 }
+suggestMockBg(); /* sugestões já visíveis antes de abrir o documento; renovadas em start() */
 $('#mockBg').addEventListener('click', e => {
   if (e.target.closest('[data-act="mbg-new"]')) { suggestMockBg(); return; }
   const b = e.target.closest('[data-mbg]'); if (b) { mockSel = b.dataset.mbg; renderMockBg(); }
@@ -1027,7 +1028,7 @@ $('#mockBg').addEventListener('click', e => {
 async function coverMockup(bg) {
   const page = doc.querySelector('.page.pg-capa') || doc.querySelector('.page');
   const shot = await window.html2canvas(page, { scale: 2.5, useCORS: true, backgroundColor: null, logging: false });
-  const size = 2200, margin = Math.round(size * 0.10), box = size - 2 * margin;
+  const size = 2000, k = size / 2200, margin = Math.round(size * 0.10), box = size - 2 * margin;
   const s = Math.min(box / shot.width, box / shot.height), w = Math.round(shot.width * s), h = Math.round(shot.height * s);
   const x = Math.round((size - w) / 2), y = Math.round((size - h) / 2 - size * 0.01);
   const c = document.createElement('canvas'); c.width = size; c.height = size;
@@ -1036,7 +1037,7 @@ async function coverMockup(bg) {
   /* sombra: o mesmo retângulo da capa, preto a 110/255, desfoque gaussiano de raio 40 (shadowBlur = 2 × raio), 28 px abaixo.
      O retângulo é desenhado fora do quadro e só a sombra cai dentro dele (funciona em qualquer navegador). */
   g.save();
-  g.shadowColor = `rgba(0,0,0,${110 / 255})`; g.shadowBlur = 80; g.shadowOffsetX = size * 2; g.shadowOffsetY = 28;
+  g.shadowColor = `rgba(0,0,0,${110 / 255})`; g.shadowBlur = Math.round(80 * k); g.shadowOffsetX = size * 2; g.shadowOffsetY = Math.round(28 * k);
   g.fillStyle = '#000'; g.fillRect(x - size * 2, y, w, h);
   g.restore();
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
