@@ -9,18 +9,20 @@ const TYPES = {
   figura: 'Figura + 3 Chamadas',
   mapa: 'Figura + Legenda Externa',
   clusters: 'Imagem + 6 Thumbs',
-  clusters4: 'Múltiplas figuras (4)',
+  clusters3: 'Imagem + 3 Thumbs',
+  clusters4: 'Imagem + 4 Thumbs',
+  clusters5: 'Imagem + 5 Thumbs',
   compose: 'Síntese + 3 Imagens + Tabela',
-  imagem169: 'Texto + imagem 16:9',
-  imagem45: 'Texto + imagem 4:5',
+  imagem169: 'Texto + Imagem 16:9',
+  imagem45: 'Texto + Imagem 4:5',
   duas45: 'Texto + 2 Imagens Lado a Lado',
   tres: 'Texto + 3 Imagens Empilhadas',
   tresL: '3 Imagens Empilhadas',
   quatro: '4 Thumbs',
   oito: '8 Thumbs',
   grafico: 'Gráfico + Texto',
-  g21x2: 'Dois gráficos 2:1',
-  g076: 'Gráfico vertical 0,76:1 + texto',
+  g21x2: '2 Imagens Empilhadas',
+  g076: 'Texto + Imagem 3:4',
   tabelaH: 'Texto + Tabela Horizontal',
   tabelaV: 'Texto + Tabela Vertical',
   texto: 'Texto Simples',
@@ -48,7 +50,7 @@ const GR = {
   g114: ['3060/2685', 'Gráfico 1,14:1 (3060 × 2685)'],
   g107: ['3060/2850', 'Gráfico 1,07:1 (3060 × 2850)'],
   g091: ['3060/3358', 'Gráfico 0,91:1 (3060 × 3358)'],
-  g076: ['3360/4410', 'Gráfico vertical 0,76:1 (3360 × 4410)']
+  g076: ['3360/4410', 'Imagem vertical 3:4 (3360 × 4410)']
 };
 const gNew = (type, sec, long = true) => () => ({ type, sec, title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
   lede: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio praesent libero, sed cursus ante dapibus diam.',
@@ -124,6 +126,10 @@ const NEW = {
     intro: 'Curabitur sodales ligula in libero. Sed dignissim lacinia nunc, curabitur tortor pellentesque nibh aenean quam.',
     fig: { img: img('contain'), cap: 'Dendrograma (método de ligação lorem ipsum). O corte em k = 4 define os grupos abaixo.' },
     cls: ['Lorem ipsum', 'Dolor sit', 'Amet', 'Adipiscing'].map((name, j) => ({ c: PALETTE[j], name, n: 'n = 000', img: img() })) }),
+  clusters3: () => ({ ...NEW.clusters4(), type: 'clusters3', fig: { img: img('contain'), cap: 'Dendrograma (método de ligação lorem ipsum). O corte em k = 3 define os grupos abaixo.' },
+    cls: ['Lorem ipsum', 'Dolor sit', 'Amet'].map((name, j) => ({ c: PALETTE[j], name, n: 'n = 000', img: img() })) }),
+  clusters5: () => ({ ...NEW.clusters4(), type: 'clusters5', fig: { img: img('contain'), cap: 'Dendrograma (método de ligação lorem ipsum). O corte em k = 5 define os grupos abaixo.' },
+    cls: ['Lorem ipsum', 'Dolor sit', 'Amet', 'Adipiscing', 'Elit sed'].map((name, j) => ({ c: PALETTE[j], name, n: 'n = 000', img: img() })) }),
   compose: () => ({ type: 'compose', sec: 'Compose e síntese', title: 'Lorem ipsum dolor sit amet',
     cmps: [['A', 'Lorem ipsum'], ['B', 'Dolor sit'], ['C', 'Amet elit']].map(([l, name]) => ({ l, name, n: 'n = 000', img: img() })),
     cap: 'Compose: sobreposição de todas as imagens de cada grupo, alinhadas e com opacidade igual.',
@@ -437,6 +443,20 @@ const R = {
       <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
       <figure class="fig">${S(k + '.fig.img', 'Dendrograma da clusterização hierárquica, com corte indicado')}${CAP(k + '.fig.cap')}</figure>
       ${LIST(k + '.cls', p.cls, (kk, it, j) => `<div class="cl-img">${S(kk + '.img', 'Exemplares C' + (j + 1))}</div><div class="cl-meta">${dotBtn(kk + '.c', it.c)}<b>C${j + 1}</b>${T(kk + '.name', { tag: 'span', single: true, ph: 'Nome' })}${T(kk + '.n', { tag: 'span', cls: 'mut ml', single: true, ph: 'n = 000' })}</div>`, { cls: 'cls cls4', tpl: 'cl', add: 'Cluster' })}
+    </div>${FOOT(i)}</div>`,
+
+  clusters3: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}
+      <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
+      <figure class="fig">${S(k + '.fig.img', 'Dendrograma da clusterização hierárquica, com corte indicado')}${CAP(k + '.fig.cap')}</figure>
+      ${LIST(k + '.cls', p.cls, (kk, it, j) => `<div class="cl-img">${S(kk + '.img', 'Exemplares C' + (j + 1))}</div><div class="cl-meta">${dotBtn(kk + '.c', it.c)}<b>C${j + 1}</b>${T(kk + '.name', { tag: 'span', single: true, ph: 'Nome' })}${T(kk + '.n', { tag: 'span', cls: 'mut ml', single: true, ph: 'n = 000' })}</div>`, { cls: 'cls cls3', tpl: 'cl', add: 'Cluster' })}
+    </div>${FOOT(i)}</div>`,
+
+  clusters5: (p, i, k) => `<div class="inner">${RUN()}
+    <div class="main">${KICK(i, k)}
+      <div class="two">${T(k + '.title', { tag: 'h2', cls: 'h2', ph: 'Título' })}${T(k + '.intro', { tag: 'p', cls: 'small', ph: 'Introdução' })}</div>
+      <figure class="fig">${S(k + '.fig.img', 'Dendrograma da clusterização hierárquica, com corte indicado')}${CAP(k + '.fig.cap')}</figure>
+      ${LIST(k + '.cls', p.cls, (kk, it, j) => `<div class="cl-img">${S(kk + '.img', 'Exemplares C' + (j + 1))}</div><div class="cl-meta">${dotBtn(kk + '.c', it.c)}<b>C${j + 1}</b>${T(kk + '.name', { tag: 'span', single: true, ph: 'Nome' })}${T(kk + '.n', { tag: 'span', cls: 'mut ml', single: true, ph: 'n = 000' })}</div>`, { cls: 'cls cls5', tpl: 'cl', add: 'Cluster' })}
     </div>${FOOT(i)}</div>`,
 
   compose: (p, i, k) => `<div class="inner">${RUN()}
@@ -853,13 +873,20 @@ $('#swatches').addEventListener('click', e => {
 });
 $('#swatches').addEventListener('change', e => { if (e.target.id === 'customColor') { state.meta.cor = e.target.value; commit(); } });
 
-$('#newType').innerHTML = Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+/* menu de templates: Capa e Episódio primeiro, Texto Simples e Expediente por último, o resto em ordem alfabética */
+const TYPE_FIRST = ['capa', 'episodio'], TYPE_LAST = ['texto', 'expediente'];
+const typeOrder = [...TYPE_FIRST,
+  ...Object.keys(TYPES).filter(k => !TYPE_FIRST.includes(k) && !TYPE_LAST.includes(k)).sort((a, b) => TYPES[a].localeCompare(TYPES[b], 'pt-BR', { numeric: true, sensitivity: 'base' })),
+  ...TYPE_LAST];
+$('#newType').innerHTML = typeOrder.map(k => `<option value="${k}">${TYPES[k]}</option>`).join('');
 $('#newType').value = 'texto';
 $('#addPage').addEventListener('click', () => {
   const t = $('#newType').value;
   const last = state.pages.length - 1;
   const at = state.pages[last]?.type === 'expediente' && t !== 'expediente' ? last : state.pages.length;
-  state.pages.splice(at, 0, NEW[t]());
+  const p = NEW[t]();
+  if ('sec' in p) p.sec = TYPES[t]; /* página nova recebe o nome do template como título da seção */
+  state.pages.splice(at, 0, p);
   commit(); scrollToPage(at);
 });
 const list = $('#pagelist');
@@ -958,7 +985,7 @@ $('#pdfApp').addEventListener('click', async () => {
     pdf.save(fname() + '.pdf');
     setStatus('PDF gerado.');
   } catch (err) {
-    console.error(err); setStatus('Não foi possível gerar o PDF. Verifique a conexão ou use “PDF pela impressão”.');
+    console.error(err); setStatus('Não foi possível gerar o PDF. Verifique a conexão ou use “Exportar PDF Texto Selecionável”.');
   } finally { document.body.classList.remove('exporting'); render(); busy(false); }
 });
 
@@ -1067,7 +1094,9 @@ function toMarkdown() {
         out.push(h, `### ${p.title}`, figMd(p.fig.img, p.fig.cap), `**${p.legLabel}**\n\n` + p.leg.map(l => `- ${l.l}: ${l.v}`).join('\n'), p.body);
         break;
       case 'clusters':
+      case 'clusters3':
       case 'clusters4':
+      case 'clusters5':
         out.push(h, `### ${p.title}`, p.intro, figMd(p.fig.img, p.fig.cap),
           p.cls.map((c, j) => `**C${j + 1} · ${c.name}** (${c.n})\n\n${imgRef(c.img, `pg${pad(i + 1)}-cluster-c${j + 1}`, 'Exemplares C' + (j + 1))}`).join('\n\n'));
         break;
@@ -1229,7 +1258,7 @@ function applyMd(p, toks, meta) {
       if (LB[0]) p.legLabel = LB[0].t;
       if (L[0]) p.leg = L[0].items.map((s, j) => { const m = /^(.*?):\s*(.*)$/.exec(s); return { c: PALETTE[j % PALETTE.length], ...(p.leg[j] || {}), l: m ? m[1] : s, v: m ? m[2] : '' }; });
       body(); break;
-    case 'clusters': case 'clusters4':
+    case 'clusters': case 'clusters3': case 'clusters4': case 'clusters5':
       intro(true);
       if (I[0]) p.fig = fig(p.fig, I[0]);
       if (I.length > 1) p.cls = I.slice(1).map((t, j) => {
