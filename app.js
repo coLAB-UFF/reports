@@ -948,7 +948,7 @@ function download(blob, name) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
-const exportBtns = ['#pdfPrint', '#pdfApp', '#mdExport', '#mdImport'].map(s => $(s));
+const exportBtns = ['#pdfPrint', '#pdfApp', '#mdExport', '#mdImport', '#mockup'].map(s => $(s));
 const busy = on => exportBtns.forEach(b => { b.disabled = on; });
 
 $('#pdfPrint').addEventListener('click', async () => {
@@ -987,6 +987,82 @@ $('#pdfApp').addEventListener('click', async () => {
   } catch (err) {
     console.error(err); setStatus('Não foi possível gerar o PDF. Verifique a conexão ou use “Exportar PDF Texto Selecionável”.');
   } finally { document.body.classList.remove('exporting'); render(); busy(false); }
+});
+
+/* ——— mockup da capa para divulgação ———
+   quadro quadrado de 2200 px, capa centralizada com 10% de margem (subindo 1%), sombra suave (desfoque 40, deslocamento 0/28, opacidade 110/255)
+   e fundo neutro dessaturado que contrasta com a cor da edição; os tons alternam (quentes e frios) e não se repetem em seguida */
+const MOCK_BG = [
+  ['Cinza-azulado', '#86949f', 'f'], ['Areia', '#c7baa0', 'q'], ['Sálvia', '#a3b098', 'f'], ['Taupe', '#96877a', 'q'],
+  ['Cinza quente', '#a8a096', 'q'], ['Cinza frio', '#969ca2', 'f'], ['Pedra', '#b4afa5', 'q'], ['Rosa antigo', '#c4a0a0', 'q'],
+  ['Malva', '#a0879a', 'f'], ['Argila', '#b08a74', 'q'], ['Linho', '#ded6c8', 'q'], ['Ardósia', '#667280', 'f'],
+  ['Musgo', '#788062', 'f'], ['Cáqui', '#b8ac84', 'q'], ['Azul névoa', '#b0c0cc', 'f'], ['Lavanda acinzentada', '#aaa6b8', 'f'],
+  ['Terracota suave', '#a87864', 'q'], ['Verde-oliva acinzentado', '#8a8a70', 'f']
+];
+let mockSugg = [], mockSel = '', mockUsed = [];
+const rgbDist = (a, b) => { const x = hexRgb(a), y = hexRgb(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+function suggestMockBg(n = 4) {
+  const cor = edColors().ed, recent = [...mockUsed.slice(-3), ...mockSugg];
+  let pool = MOCK_BG.filter(([, c]) => rgbDist(c, cor) > 70 && !recent.includes(c));
+  if (pool.length < n) pool = MOCK_BG.filter(([, c]) => rgbDist(c, cor) > 70);
+  pool = pool.sort(() => Math.random() - 0.5);
+  const out = [], first = Math.random() < 0.5 ? 'q' : 'f';
+  for (let j = 0; j < n && pool.length; j++) {
+    const want = j % 2 ? (first === 'q' ? 'f' : 'q') : first;
+    const k = Math.max(0, pool.findIndex(t => t[2] === want));
+    out.push(pool.splice(k, 1)[0][1]);
+  }
+  mockSugg = out; mockSel = out[0] || MOCK_BG[0][1];
+  renderMockBg();
+}
+function renderMockBg() {
+  const name = c => (MOCK_BG.find(t => t[1] === c) || ['Fundo'])[0];
+  $('#mockBg').innerHTML = mockSugg.map(c => `<button class="sw" style="background:${c}" data-mbg="${c}" aria-pressed="${c === mockSel}" title="${name(c)}" aria-label="Fundo ${name(c)}"></button>`).join('')
+    + `<button class="sw sw-new" data-act="mbg-new" title="Sugerir outros fundos" aria-label="Sugerir outros fundos"><i class="ph-duotone ph-arrows-clockwise"></i></button>`;
+}
+$('#mockBg').addEventListener('click', e => {
+  if (e.target.closest('[data-act="mbg-new"]')) { suggestMockBg(); return; }
+  const b = e.target.closest('[data-mbg]'); if (b) { mockSel = b.dataset.mbg; renderMockBg(); }
+});
+async function coverMockup(bg) {
+  const page = doc.querySelector('.page.pg-capa') || doc.querySelector('.page');
+  const shot = await window.html2canvas(page, { scale: 2.5, useCORS: true, backgroundColor: null, logging: false });
+  const size = 2200, margin = Math.round(size * 0.10), box = size - 2 * margin;
+  const s = Math.min(box / shot.width, box / shot.height), w = Math.round(shot.width * s), h = Math.round(shot.height * s);
+  const x = Math.round((size - w) / 2), y = Math.round((size - h) / 2 - size * 0.01);
+  const c = document.createElement('canvas'); c.width = size; c.height = size;
+  const g = c.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, size, size);
+  /* sombra: o mesmo retângulo da capa, preto a 110/255, desfoque gaussiano de raio 40 (shadowBlur = 2 × raio), 28 px abaixo.
+     O retângulo é desenhado fora do quadro e só a sombra cai dentro dele (funciona em qualquer navegador). */
+  g.save();
+  g.shadowColor = `rgba(0,0,0,${110 / 255})`; g.shadowBlur = 80; g.shadowOffsetX = size * 2; g.shadowOffsetY = 28;
+  g.fillStyle = '#000'; g.fillRect(x - size * 2, y, w, h);
+  g.restore();
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(shot, x, y, w, h);
+  return new Promise(res => c.toBlob(res, 'image/png'));
+}
+$('#mockup').addEventListener('click', async () => {
+  document.activeElement?.blur?.();
+  if (!state.pages.some(p => p.type === 'capa')) { setStatus('O documento não tem capa.'); return; }
+  busy(true); setStatus('Gerando mockup…');
+  const bg = mockSel || MOCK_BG[0][1];
+  try {
+    await loadScript(LIBS.h2c);
+    await document.fonts.ready;
+    document.body.classList.add('exporting');
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await bakeSlots(2.5);
+    download(await coverMockup(bg), fname() + '-mockup.png');
+    mockUsed.push(bg);
+    setStatus(`Mockup gerado com fundo ${(MOCK_BG.find(t => t[1] === bg) || ['personalizado'])[0].toLowerCase()}.`);
+  } catch (err) {
+    console.error(err); setStatus('Não foi possível gerar o mockup. Verifique a conexão.');
+  } finally {
+    document.body.classList.remove('exporting'); render(); busy(false);
+    if (mockUsed.length && mockUsed[mockUsed.length - 1] === bg) suggestMockBg();
+  }
 });
 
 /* sobrepõe cada imagem na resolução original (até 4500 px no lado maior), recortada como na página;
@@ -1427,7 +1503,7 @@ function showGate(mode) {
 async function start(key) {
   KEY = key; await keepSession(key);
   state = await load();
-  SUGG = suggestColors();
+  SUGG = suggestColors(); suggestMockBg();
   let z = null; try { z = +localStorage.getItem('reportlab-zoom'); } catch { /* */ }
   gate.hidden = true; document.body.classList.remove('locked');
   render();
