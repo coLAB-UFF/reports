@@ -371,3 +371,8 @@ body.locked>aside,body.locked>.stage{visibility:hidden}
 .gside{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 48mm;gap:8mm}
 .gside .fig-fit{min-height:0;max-height:100%}
 .gside .split-txt{align-self:start}
+/* Figura + Legenda Externa com moldura na proporção da imagem */
+.map-fit .fig-fit{min-height:0;max-height:100%}
+/* sugestões de cor da capa */
+.sw-new{display:inline-flex;align-items:center;justify-content:center;background:var(--surface);color:var(--ink);font-size:16px}
+.sw-lbl{flex-basis:100%;font-size:11px;color:var(--mut);margin:2px 0 -4px}
