@@ -19,7 +19,7 @@ Editor de relatórios de análise de conjuntura do [coLAB/UFF](https://colab.mem
   - **Exportar PDF Texto Selecionável** (pela impressão do navegador) — vetorial, texto selecionável. Na janela de impressão: “Salvar como PDF”, papel A4, margens “Nenhuma”, “Gráficos de plano de fundo” ativado.
   - **Exportar PDF Digitalizado** (gerado no app) — idêntico em qualquer navegador (páginas rasterizadas em alta resolução).
   - **Exportar Markdown** — `.md`; se houver imagens, um `.zip` com o `.md` e a pasta `imagens/`.
-- Divulgar: **Gerar Mockup** baixa um PNG quadrado (2200 × 2200 px) com a capa, como está configurada, centralizada sobre um fundo neutro com sombra suave. O painel sugere quatro fundos dessaturados que contrastam com a cor da edição, alternando tons quentes e frios; a cada mockup gerado, as sugestões mudam para não repetir o fundo.
+- Divulgar: **Gerar Mockup** baixa um PNG quadrado (2000 × 2000 px) com a capa, como está configurada, centralizada sobre um fundo neutro com sombra suave. O painel sugere quatro fundos dessaturados que contrastam com a cor da edição, alternando tons quentes e frios; a cada mockup gerado, as sugestões mudam para não repetir o fundo.
 
 ## Publicar no GitHub Pages
 

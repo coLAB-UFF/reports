@@ -25,6 +25,8 @@ Abrir `index.html` direto via `file://` pode falhar (IndexedDB/crypto.subtle exi
 
 ## Convenções
 
+- **A cada mudança em `app.js` ou `app.css`, atualize o `?v=` dos dois em `index.html`.** O GitHub Pages manda guardar os arquivos em cache por 10 minutos; sem a versão nova na URL, o navegador pode juntar o `index.html` novo com o `app.js` antigo (botões sem ação).
+
 - Interface e textos em português (pt-BR).
 - Sem dependências locais nem etapa de build; bibliotecas externas só por CDN e sob demanda.
 - Mudanças no formato de `state` precisam continuar abrindo documentos já salvos no IndexedDB dos usuários (migre campos ausentes ao carregar).
