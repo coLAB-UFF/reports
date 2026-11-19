@@ -16,7 +16,7 @@ Editor de relatórios de análise de conjuntura do [coLAB/UFF](https://colab.mem
 - Salva automaticamente no navegador (IndexedDB). O documento não sai do computador do usuário.
 - Pede senha de acesso. No primeiro acesso em cada navegador, o usuário cria a senha; o documento é salvo criptografado com ela (AES-GCM, chave derivada por PBKDF2). A senha pode ser alterada em Configurações (ícone de engrenagem), onde também há a opção de sair e bloquear. Sem a senha, o documento salvo não pode ser recuperado: “Esqueci a senha” apaga o documento deste navegador e permite criar outra.
 - Exporta:
-  - **Exportar PDF Texto Simples** (pela impressão do navegador) — vetorial, texto selecionável. Na janela de impressão: “Salvar como PDF”, papel A4, margens “Nenhuma”, “Gráficos de plano de fundo” ativado.
+  - **Exportar PDF Texto** (pela impressão do navegador) — vetorial, texto selecionável. Na janela de impressão: “Salvar como PDF”, papel A4, margens “Nenhuma”, “Gráficos de plano de fundo” ativado.
   - **Exportar PDF Digitalizado** (gerado no app) — idêntico em qualquer navegador (páginas rasterizadas em alta resolução).
   - **Exportar Markdown** — `.md`; se houver imagens, um `.zip` com o `.md` e a pasta `imagens/`.
 - Divulgar: **Gerar Mockup** baixa um PNG quadrado (2000 × 2000 px) com a capa, como está configurada, centralizada sobre um fundo neutro com sombra suave. O painel sugere quatro fundos dessaturados que contrastam com a cor da edição, alternando tons quentes e frios; a cada mockup gerado, as sugestões mudam para não repetir o fundo.

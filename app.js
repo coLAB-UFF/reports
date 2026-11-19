@@ -985,7 +985,7 @@ $('#pdfApp').addEventListener('click', async () => {
     pdf.save(fname() + '.pdf');
     setStatus('PDF gerado.');
   } catch (err) {
-    console.error(err); setStatus('Não foi possível gerar o PDF. Verifique a conexão ou use “Exportar PDF Texto Simples”.');
+    console.error(err); setStatus('Não foi possível gerar o PDF. Verifique a conexão ou use “Exportar PDF Texto”.');
   } finally { document.body.classList.remove('exporting'); render(); busy(false); }
 });
 
