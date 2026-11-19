@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-<link rel="stylesheet" href="app.css?v=2026-11-19.4">
+<link rel="stylesheet" href="app.css?v=2026-11-19.5">
 </head>
 <body class="locked">
 <div class="gate" id="gate" hidden>
@@ -107,6 +107,16 @@
       <button class="btn btn-primary btn-block" id="mockup"><i class="ph-duotone ph-image"></i>Gerar Mockup</button>
       <p class="hint">Baixa um PNG quadrado (2000 × 2000 px) com a capa como está, centralizada sobre o fundo escolhido e com sombra suave.</p>
     </div>
+    <div class="exp-opt">
+      <button class="btn btn-secondary btn-block" id="postGen"><i class="ph-duotone ph-whatsapp-logo"></i>Gerar Texto de Divulgação</button>
+      <p class="hint">Sugestão de post para WhatsApp com os principais destaques do relatório. Revise antes de publicar.</p>
+    </div>
+    <details class="post" id="postBox" hidden>
+      <summary>Texto de divulgação</summary>
+      <textarea class="input post-txt" id="postText" rows="16" spellcheck="true" aria-label="Texto de divulgação"></textarea>
+      <button class="btn btn-secondary btn-block" id="postCopy"><i class="ph-duotone ph-copy"></i>Copiar texto</button>
+      <p class="hint post-warn" id="postWarn" hidden></p>
+    </details>
   </section>
 
   <section class="sec">
@@ -123,6 +133,6 @@
 
 <main class="stage" id="stage"><div id="doc"></div></main>
 <input type="file" id="file" accept="image/*" hidden>
-<script src="app.js?v=2026-11-19.4"></script>
+<script src="app.js?v=2026-11-19.5"></script>
 </body>
 </html>

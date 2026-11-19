@@ -381,3 +381,9 @@ body.locked>aside,body.locked>.stage{visibility:hidden}
 /* sugestões de cor da capa */
 .sw-new{display:inline-flex;align-items:center;justify-content:center;background:var(--surface);color:var(--ink);font-size:16px}
 .sw-lbl{flex-basis:100%;font-size:11px;color:var(--mut);margin:2px 0 -4px}
+/* texto de divulgação */
+.post{margin-top:2px}
+.post summary{cursor:pointer;font-size:12px;color:#4d4a4a;padding:4px 0}
+.post-txt{display:block;min-height:220px;resize:vertical;font-size:13px;line-height:1.45;white-space:pre-wrap;margin:6px 0 8px}
+.post-warn{margin-top:8px}
+.post-warn{color:#8a3a00}

@@ -20,6 +20,7 @@ Editor de relatórios de análise de conjuntura do [coLAB/UFF](https://colab.mem
   - **Exportar PDF Digitalizado** (gerado no app) — idêntico em qualquer navegador (páginas rasterizadas em alta resolução).
   - **Exportar Markdown** — `.md`; se houver imagens, um `.zip` com o `.md` e a pasta `imagens/`.
 - Divulgar: **Gerar Mockup** baixa um PNG quadrado (2000 × 2000 px) com a capa, como está configurada, centralizada sobre um fundo neutro com sombra suave. O painel sugere quatro fundos dessaturados que contrastam com a cor da edição, alternando tons quentes e frios; a cada mockup gerado, as sugestões mudam para não repetir o fundo.
+- Divulgar: **Gerar Texto de Divulgação** abre uma caixa com uma sugestão de post para WhatsApp, montada a partir do próprio relatório: título da capa, contexto e números do corpus (página Episódio), 3 ou 4 achados tirados das seções (preferindo as que trazem percentuais e contagens) e o link do DOI. O texto pode ser editado e copiado com um clique. O app avisa quando o “Como citar” ou o DOI do expediente não conferem com a capa, ou quando ainda há texto de exemplo.
 
 ## Publicar no GitHub Pages
 
