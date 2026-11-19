@@ -1066,6 +1066,82 @@ $('#mockup').addEventListener('click', async () => {
   }
 });
 
+/* ——— texto de divulgação (post de WhatsApp) ———
+   segue a skill “Post de WhatsApp para relatórios do coLAB”: abertura com o título, contexto com o episódio e o corpus,
+   3 ou 4 achados (“▪️ *Rótulo*: síntese”) tirados das seções do próprio relatório, e o link do DOI.
+   Usa só o texto e os números que estão no documento; nada é inventado nem recalculado. */
+const sentences = s => String(s || '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?…])\s+(?=[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ"“(0-9])/).filter(Boolean);
+const hasNum = s => /\d/.test(s);
+const noStars = s => String(s || '').replace(/\*/g, '').trim();
+function pickSentences(text, max = 2, limit = 320) {
+  const all = sentences(text); if (!all.length) return '';
+  /* prefere frases com números (percentuais, contagens), mantendo a ordem do texto */
+  const idx = all.map((s, j) => [s, j]);
+  const chosen = [...idx.filter(([s]) => hasNum(s)), ...idx.filter(([s]) => !hasNum(s))].slice(0, max).sort((a, b) => a[1] - b[1]).map(([s]) => s);
+  let out = chosen[0];
+  if (chosen[1] && (out + ' ' + chosen[1]).length <= limit) out += ' ' + chosen[1];
+  return out;
+}
+function postText() {
+  computeSecs();
+  const m = state.meta, capa = state.pages.find(p => p.type === 'capa'), ep = state.pages.find(p => p.type === 'episodio');
+  const ex = state.pages.find(p => p.type === 'expediente');
+  const title = noStars(capa?.title) || `${m.serie} nº ${m.numero}`;
+  const out = [`📊 *${title}*, novo boletim de ${noStars(m.serie) || 'Análise de Conjuntura'} do coLAB/UFF`];
+  /* contexto: abertura do episódio (ou subtítulo da capa) + números do corpus */
+  let ctx = pickSentences(ep?.lede || capa?.subtitle || '', 2, 360);
+  const stats = (ep?.stats || []).filter(s => noStars(s.v)).map(s => `${noStars(s.v)} ${noStars(s.l)}`.trim());
+  if (stats.length) ctx = (ctx ? ctx.replace(/\s*$/, '') + ' ' : '') + `Corpus: ${stats.join('; ')}.`;
+  if (ctx) out.push(noStars(ctx));
+  /* achados: uma seção por tópico, no máximo 4, preferindo as que trazem números */
+  const cand = state.pages.map((p, i) => ({ p, i })).filter(({ p, i }) => SEC[i] && p.type !== 'episodio').map(({ p, i }) => {
+    const text = [p.lede, p.intro, p.syn, p.body].filter(Boolean).join(' ');
+    const syn = noStars(pickSentences(text));
+    const label = noStars(tocCase(p.sec || TYPES[p.type]));
+    return { i, label, syn, score: (hasNum(syn) ? 2 : 0) + (/%/.test(syn) ? 1 : 0) + (p.type === 'compose' ? 1 : 0) };
+  }).filter(c => c.syn && c.label);
+  const seen = new Set();
+  const top = cand.filter(c => !seen.has(c.label.toLowerCase()) && seen.add(c.label.toLowerCase()))
+    .map((c, j) => ({ ...c, j })).sort((a, b) => b.score - a.score || a.j - b.j).slice(0, 4).sort((a, b) => a.i - b.i);
+  /* depois dos dois-pontos, artigos e palavras comuns em minúscula (“*Uso de IA*: imagens…”); nomes próprios e siglas ficam como estão */
+  const LOW = /^(O|A|Os|As|Um|Uma|Uns|Umas|Este|Esta|Estes|Estas|Esse|Essa|Esses|Essas|Cerca|Mais|Menos|Entre|Em|No|Na|Nos|Nas|De|Do|Da|Dos|Das|Para|Com|Sem|Quase|Apenas|Todos|Todas|Metade|Seis|Cinco|Quatro|Três|Dois|Duas|Imagens|Memes|Postagens|Publicações)\b/;
+  const lowFirst = t => t.replace(LOW, w => w.toLocaleLowerCase('pt-BR'));
+  if (top.length) out.push('Principais achados:', top.map(c => `▪️ *${c.label}*: ${lowFirst(c.syn)}`).join('\n'));
+  if (noStars(m.doi)) out.push(`🔗 Leia o relatório completo: doi.org/${noStars(m.doi)}`);
+  /* verificação: “Como citar” do expediente coerente com a capa; textos de exemplo ainda presentes */
+  const warn = [];
+  const cite = ex?.info?.find(x => /como citar/i.test(x.l))?.t || '';
+  const doiInfo = ex?.info?.find(x => /^doi$/i.test(String(x.l).trim()))?.t || '';
+  if (cite) {
+    const norm = s => String(s).toLowerCase().replace(/\s+/g, ' ');
+    const probs = [];
+    if (m.doi && !norm(cite).includes(norm(m.doi))) probs.push('o DOI');
+    if (capa?.title && !norm(cite).includes(norm(noStars(capa.title)))) probs.push('o título');
+    const n = /n\.\s*0*(\d+)/i.exec(cite); if (n && +n[1] !== +m.numero) probs.push('o número');
+    if (probs.length) warn.push(`O “Como citar” do expediente não confere com a capa (${probs.join(', ')}); talvez tenha ficado de um número anterior.`);
+  }
+  if (doiInfo && m.doi && !doiInfo.includes(m.doi)) warn.push('O DOI do expediente é diferente do DOI da capa.');
+  if (/lorem ipsum/i.test(out.join(' '))) warn.push('O texto ainda contém trechos de exemplo (Lorem ipsum); preencha as páginas do relatório antes de divulgar.');
+  if (top.length < 3) warn.push('O relatório tem menos de três seções com texto; o post ficou com menos achados que o recomendado (3 ou 4).');
+  return { text: out.join('\n\n'), warn, n: top.length };
+}
+$('#postGen').addEventListener('click', () => {
+  document.activeElement?.blur?.();
+  const { text, warn } = postText();
+  $('#postText').value = text;
+  const w = $('#postWarn'); w.textContent = warn.join(' '); w.hidden = !warn.length;
+  const box = $('#postBox'); box.hidden = false; box.open = true;
+  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  setStatus('Texto de divulgação gerado. Revise e copie.');
+});
+$('#postCopy').addEventListener('click', async () => {
+  const ta = $('#postText');
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch { ta.select(); try { document.execCommand('copy'); } catch { setStatus('Não foi possível copiar; selecione o texto e copie manualmente.'); return; } }
+  setStatus('Texto copiado para a área de transferência.');
+  const b = $('#postCopy'), html = b.innerHTML; b.innerHTML = '<i class="ph-duotone ph-check"></i>Copiado'; setTimeout(() => { b.innerHTML = html; }, 1800);
+});
+
 /* sobrepõe cada imagem na resolução original (até 4500 px no lado maior), recortada como na página;
    elementos posicionados sobre as imagens (ex.: legendas sobrepostas) são reaplicados por cima */
 async function hiresLayer(page, pdf, cv) {
