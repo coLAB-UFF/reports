@@ -188,6 +188,11 @@ figcaption b,.figcap b{color:var(--ed-deep)}
 .cl-img{height:32mm;display:flex}
 .cls4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .cls4 .cl-img{height:38mm}
+.cls3 .cl-img{height:48mm}
+.cls5{grid-template-columns:repeat(5,minmax(0,1fr));gap:4mm}
+.cls5 .cl-img{height:32mm}
+.cls5 .cl-meta{flex-wrap:wrap;row-gap:.5mm;font-size:10.5px}
+.cls5 .cl-meta .ml{flex-basis:100%;margin-left:0}
 .cl-meta{display:flex;align-items:center;gap:2mm;font-size:11.5px}
 .cl-meta .dot{width:2.5mm;height:2.5mm}
 .ml{margin-left:auto}
